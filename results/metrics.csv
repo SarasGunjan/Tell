@@ -1,0 +1,7 @@
+model,hits_100,precision_100,recall_100,hits_250,precision_250,recall_250,hits_500,precision_500,recall_500,roc_auc,pr_auc
+CVSS 3.1 Severity Baseline,4,0.04,0.0656,6,0.024,0.0984,9,0.018,0.1475,0.7486,0.0079
+EPSS Point-in-Time Baseline,4,0.04,0.0656,8,0.032,0.1311,8,0.016,0.1311,0.6229,0.0267
+Public Exploit + EPSS Heuristic,8,0.08,0.1311,15,0.06,0.2459,19,0.038,0.3115,0.6775,0.047
+Logistic Regression (Balanced),7,0.07,0.1148,8,0.032,0.1311,11,0.022,0.1803,0.5719,0.0141
+LightGBM GBDT Classifier,5,0.05,0.082,7,0.028,0.1148,7,0.014,0.1148,0.4585,0.0099
+Tell Ensemble Ranker (Production),8,0.08,0.1311,11,0.044,0.1803,14,0.028,0.2295,0.7093,0.0413
