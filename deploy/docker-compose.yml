@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  tell-app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: tell-intelligence-platform
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - TELL_ENV=production
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
+      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
+      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE:-COMPUTE_WH}
+      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE:-TELL_SECURITY}
+      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA:-INTELLIGENCE}
+      - SNOWFLAKE_CORTEX_MODEL=${SNOWFLAKE_CORTEX_MODEL:-mistral-large2}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-flash}
+    volumes:
+      - ../results:/app/results:ro
+      - ../data:/app/data:ro
+    networks:
+      - tell-net
+
+networks:
+  tell-net:
+    driver: bridge
