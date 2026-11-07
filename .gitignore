@@ -1,0 +1,33 @@
+# Tell Platform .gitignore
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Environment and Secrets
+.env
+*.key
+*.pem
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Raw Data and Embedding Caches (Exclude huge 800MB CSVs from Git sync)
+data/*.csv
+!data/.gitkeep
+*.parquet
+*.h5
+
+# Models and Caches
+.pytest_cache/
+.coverage
+htmlcov/
