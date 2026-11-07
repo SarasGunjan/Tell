@@ -21,6 +21,7 @@ if str(root_dir) not in sys.path:
 from src.ai.snowflake_cortex import SnowflakeCortexAssistant
 from src.ai.gemini_briefs import GeminiBriefGenerator
 from src.ai.evidence_grounding import EvidenceGroundingEngine
+from src.granite.watsonx_granite import IBMGraniteClient
 
 # Page Config
 st.set_page_config(
@@ -144,6 +145,7 @@ except Exception as e:
 cortex_assistant = SnowflakeCortexAssistant()
 gemini_assistant = GeminiBriefGenerator()
 grounding_engine = EvidenceGroundingEngine(data_cache=df_predictions)
+granite_client = IBMGraniteClient()
 
 # Sidebar Navigation & Platform Status
 with st.sidebar:
@@ -494,6 +496,43 @@ elif nav_page == "🧬 Exploit Family Explorer":
         }),
         use_container_width=True
     )
+
+    st.markdown("---")
+    st.markdown("### 🔬 Live IBM Granite Feature Extractor Playground")
+    st.write(
+        "Inspect how **IBM Granite (`ibm/granite-13b-instruct-v2`)** processes unstructured vulnerability disclosures "
+        "to extract verifiable exposure primitives (`remote_local`, `auth_required`) and map them into behavioral exploit families."
+    )
+
+    preset_samples = {
+        "CVE-2024-3400 (Palo Alto GlobalProtect Command Injection)": "A command injection vulnerability in the GlobalProtect feature of Palo Alto Networks PAN-OS software allows an unauthenticated remote attacker to execute arbitrary code with root privileges on the firewall.",
+        "CVE-2024-21338 (Windows Kernel Elevation of Privilege)": "Windows Kernel Elevation of Privilege Vulnerability. An attacker who successfully exploited this vulnerability could gain SYSTEM privileges through a local execution context.",
+        "CVE-2024-23897 (Jenkins CLI Arbitrary File Read / Traversal)": "Jenkins built-in command line interface parser flaw allows unauthenticated remote attackers to read arbitrary files on the Jenkins controller file system via path traversal.",
+        "CVE-2024-1709 (ConnectWise ScreenConnect Auth Bypass)": "ConnectWise ScreenConnect unauthenticated path traversal and authentication bypass flaw allows an attacker to create new administrative accounts remotely.",
+        "Custom Vulnerability Description": ""
+    }
+
+    selected_preset = st.selectbox("Select a Preset Vulnerability or Choose Custom:", list(preset_samples.keys()))
+    default_text = preset_samples[selected_preset]
+    input_desc = st.text_area("Vulnerability Disclosure Text:", value=default_text, height=100)
+
+    if st.button("⚡ Run IBM Granite Model Inference", type="primary"):
+        with st.spinner("Invoking IBM Granite Foundation Model..."):
+            granite_res = granite_client.extract_vulnerability_traits(input_desc)
+            
+            g_col1, g_col2, g_col3 = st.columns(3)
+            with g_col1:
+                st.metric("Exposure Vector", granite_res.get("remote_local", "UNKNOWN"))
+            with g_col2:
+                st.metric("Authentication Prerequisite", granite_res.get("auth_required", "UNKNOWN"))
+            with g_col3:
+                st.metric("Technical Mechanism", granite_res.get("attack_type", "General Logic Flaw"))
+            
+            st.markdown(f"**IBM Granite Semantic Reasoning:** {granite_res.get('granite_reasoning')}")
+            st.caption(f"Engine: {granite_res.get('source')} | Model: {granite_res.get('model')}")
+            
+            with st.expander("🔍 View Raw IBM Granite JSON Output"):
+                st.json(granite_res)
 
 
 # ==========================================
