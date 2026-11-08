@@ -63,10 +63,16 @@ def build_output_tables(
     kev_lookup = {}
     if kev_stats_df is not None and len(kev_stats_df) > 0:
         for r in kev_stats_df.itertuples(index=False):
-            kev_lookup[getattr(r, "family_id")] = (
-                getattr(r, "historical_kev_count", np.nan),
-                getattr(r, "historical_kev_rate", np.nan),
-            )
+            kev_lookup[getattr(r, "family_id")] = {
+                "historical_kev_count": getattr(r, "historical_kev_count", np.nan),
+                "historical_kev_rate": getattr(r, "historical_kev_rate", np.nan),
+                "sample_kev_rate": getattr(r, "sample_kev_rate", getattr(r, "historical_kev_rate", np.nan)),
+                "population_kev_rate": getattr(r, "population_kev_rate", np.nan),
+                "population_lift": getattr(r, "population_lift", np.nan),
+                "sample_lift": getattr(r, "relative_lift_vs_overall", np.nan),
+                "ci_95_low": getattr(r, "ci_95_low", np.nan),
+                "ci_95_high": getattr(r, "ci_95_high", np.nan),
+            }
 
     summary_rows = []
     for fid in all_fam_ids:
@@ -78,13 +84,19 @@ def build_output_tables(
         rep_cves = det.get("representative_cves", "")
         top_chars = det.get("top_characteristics", "")
 
-        k_count, k_rate = kev_lookup.get(fid, (np.nan, np.nan))
+        k_info = kev_lookup.get(fid, {})
         summary_rows.append({
             "family_id": fid,
             "family_name": fname,
             "family_size": size,
-            "historical_kev_count": k_count,
-            "historical_kev_rate": k_rate,
+            "historical_kev_count": k_info.get("historical_kev_count", np.nan),
+            "historical_kev_rate": k_info.get("historical_kev_rate", np.nan),
+            "sample_kev_rate": k_info.get("sample_kev_rate", np.nan),
+            "population_kev_rate": k_info.get("population_kev_rate", np.nan),
+            "population_lift": k_info.get("population_lift", np.nan),
+            "sample_lift": k_info.get("sample_lift", np.nan),
+            "ci_95_low": k_info.get("ci_95_low", np.nan),
+            "ci_95_high": k_info.get("ci_95_high", np.nan),
             "representative_cves": rep_cves,
             "top_characteristics": top_chars,
         })

@@ -136,22 +136,58 @@ def generate_embeddings(
                 logger.warning(f"Cache read failed for {cache_file.name} ({e}); regenerating...")
 
     model = get_granite_embedding_model(model_id=model_id, device=device)
-    # Cap max_seq_length to 256 tokens (~180 words) to prevent outlier 8192-token quadratic CPU stalls
-    if getattr(model, "max_seq_length", 8192) > 256:
-        model.max_seq_length = 256
+    # Cap max_seq_length to 96 tokens (~75 words) on large CPU cohorts (>5k) or 256 otherwise
+    max_seq = 96 if (detect_device(device) == "cpu" and len(descriptions) > 5000) else 256
+    if getattr(model, "max_seq_length", 8192) > max_seq:
+        model.max_seq_length = max_seq
     resolved_device = detect_device(device)
+
+    # Deduplicate identical descriptions and sort by length to minimize padding overhead
+    unique_map: dict[str, int] = {}
+    unique_texts: list[str] = []
+    inverse_indices = np.empty(len(descriptions), dtype=np.int64)
+    for idx, text in enumerate(descriptions):
+        u_idx = unique_map.get(text)
+        if u_idx is None:
+            u_idx = len(unique_texts)
+            unique_map[text] = u_idx
+            unique_texts.append(text)
+        inverse_indices[idx] = u_idx
+
     logger.info(
-        f"Encoding {len(descriptions):,} descriptions with '{model_id}' "
-        f"(batch_size={batch_size}, device={resolved_device})..."
+        f"Encoding {len(descriptions):,} descriptions ({len(unique_texts):,} unique) with '{model_id}' "
+        f"(batch_size={batch_size}, max_seq_length={model.max_seq_length}, device={resolved_device})..."
     )
 
-    vectors = model.encode(
-        descriptions,
-        batch_size=batch_size,
-        normalize_embeddings=normalize_embeddings,
-        show_progress_bar=len(descriptions) >= 200,
-        convert_to_numpy=True,
-    ).astype(np.float32)
+    length_order = np.argsort([len(t) for t in unique_texts])
+    sorted_unique_texts = [unique_texts[i] for i in length_order]
+
+    if resolved_device == "cpu" and len(sorted_unique_texts) >= 5000:
+        pool = model.start_multi_process_pool(target_devices=["cpu"] * 3)
+        try:
+            sorted_vecs = model.encode(
+                sorted_unique_texts,
+                pool=pool,
+                batch_size=max(batch_size, 128),
+                chunk_size=1024,
+                normalize_embeddings=normalize_embeddings,
+                show_progress_bar=True,
+                convert_to_numpy=True,
+            ).astype(np.float32)
+        finally:
+            model.stop_multi_process_pool(pool)
+    else:
+        sorted_vecs = model.encode(
+            sorted_unique_texts,
+            batch_size=batch_size,
+            normalize_embeddings=normalize_embeddings,
+            show_progress_bar=len(sorted_unique_texts) >= 200,
+            convert_to_numpy=True,
+        ).astype(np.float32)
+
+    unique_vecs = np.empty_like(sorted_vecs)
+    unique_vecs[length_order] = sorted_vecs
+    vectors = unique_vecs[inverse_indices]
 
     if vectors.shape[0] != len(cve_ids):
         raise RuntimeError(f"Embedding output row count {vectors.shape[0]} != input count {len(cve_ids)}")

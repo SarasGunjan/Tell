@@ -52,4 +52,30 @@ def test_temporal_leakage_cutoff_in_kev_statistics():
     assert meta_2024["historical_n"] == 2
     assert meta_2024["historical_kev_total"] == 1
     assert stats_2024.loc[0, "historical_kev_rate"] == 0.5
+    assert "population_kev_rate" in stats_2024.columns
+    assert "population_lift" in stats_2024.columns
+
+
+def test_full_historical_and_benchmark_csv_deliverables():
+    from pathlib import Path
+    from src.granite.export import validate_outputs
+
+    hist_dir = Path("outputs/granite")
+    bench_dir = Path("outputs/granite/benchmark_2026")
+    if hist_dir.exists() and bench_dir.exists():
+        h_feat = pd.read_csv(hist_dir / "granite_features.csv")
+        h_fam = pd.read_csv(hist_dir / "families.csv")
+        h_sum = pd.read_csv(hist_dir / "family_summary.csv")
+        res_h = validate_outputs(h_feat, h_fam, h_sum)
+        assert res_h["valid"] is True
+        assert res_h["total_cves"] == 2500
+
+        b_feat = pd.read_csv(bench_dir / "granite_features.csv")
+        b_fam = pd.read_csv(bench_dir / "families.csv")
+        b_sum = pd.read_csv(bench_dir / "family_summary.csv")
+        res_b = validate_outputs(b_feat, b_fam, b_sum)
+        assert res_b["valid"] is True
+        assert res_b["total_cves"] == 72670
+        assert list(h_sum["family_id"]) == list(b_sum["family_id"])
+
 

@@ -213,6 +213,22 @@ def run_pipeline(
                 )
                 baseline_df.to_csv(out_dir / "baseline_comparison.csv", index=False)
 
+            if "published" in df.columns:
+                m24 = (df["published"].astype(str) >= "2024-01-01") & (df["published"].astype(str) <= "2024-12-31")
+                m25 = (df["published"].astype(str) >= "2025-01-01") & (df["published"].astype(str) <= "2025-12-31")
+                if int(m24.sum()) >= clusters * 2 and int(m25.sum()) >= clusters * 2:
+                    temporal_df, temporal_meta = evaluate_leakage_free_temporal_split(
+                        df_2024=df[m24].reset_index(drop=True),
+                        emb_2024=embeddings[m24.to_numpy()],
+                        df_2025=df[m25].reset_index(drop=True),
+                        emb_2025=embeddings[m25.to_numpy()],
+                        kev_df=kev_df,
+                        n_clusters=clusters,
+                        seed=seed,
+                    )
+                    temporal_df.to_csv(out_dir / "temporal_validation_2024_2025.csv", index=False)
+                    kev_meta["temporal_validation_2024_2025"] = temporal_meta
+
     # 7. Build, validate, and export the three required CSV deliverables
     granite_features_df, families_df, family_summary_df = build_output_tables(
         df=df,

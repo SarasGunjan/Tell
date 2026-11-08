@@ -1,6 +1,6 @@
-method,num_groups,non_missing_coverage,peak_group_kev_rate,peak_group_lift,top3_groups_kev_share,top3_groups_volume_share,top3_concentration_ratio
-IBM Granite Embeddings (KMeans),10,1.0,0.328358,2.59,0.6467,0.3556,1.82
-TF-IDF Text Baseline (KMeans),10,1.0,0.56,4.42,0.3691,0.178,2.07
-Simple Keyword Rules,12,0.6344,0.47619,3.76,0.3849,0.1628,2.36
-Official CWE Top Categories,10,0.9464,0.368421,2.91,0.1703,0.0788,2.16
-CVSSv3 Severity × Attack Vector,14,0.9688,0.326034,2.57,0.877,0.5116,1.71
+method,num_groups,non_missing_coverage,peak_group_kev_rate,peak_group_lift,population_peak_kev_rate,population_peak_lift,top3_groups_kev_share,top3_groups_volume_share,top3_concentration_ratio,population_top3_volume_share,population_top3_concentration_ratio
+IBM Granite Embeddings (KMeans),10,1.0,0.328358,2.59,0.012011,3.34,0.6467,0.3556,1.82,0.3145,2.06
+TF-IDF Text Baseline (KMeans),10,1.0,0.56,4.42,0.030678,8.53,0.3691,0.178,2.07,0.151,2.44
+Simple Keyword Rules,12,0.6344,0.47619,3.76,0.022107,6.14,0.3849,0.1628,2.36,0.1315,2.93
+Official CWE Top Categories,10,0.9464,0.368421,2.91,0.014299,3.97,0.1703,0.0788,2.16,0.0659,2.59
+CVSSv3 Severity × Attack Vector,14,0.9688,0.326034,2.57,0.011887,3.3,0.877,0.5116,1.71,0.46,1.91

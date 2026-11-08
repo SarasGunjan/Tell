@@ -37,9 +37,12 @@ def compute_family_kev_statistics(
     kev_df: Optional[pd.DataFrame] = None,
     cutoff_date: Optional[str] = "2025-12-31",
     exclude_published_after: Optional[str] = "2025-12-31",
+    population_total_cves: int = 88103,
+    population_total_kev: int = 317,
 ) -> tuple[pd.DataFrame, dict]:
     """
-    Computes historical KEV inclusion statistics per family with strict temporal cutoff controls.
+    Computes historical KEV inclusion statistics per family with strict temporal cutoff controls
+    and Horvitz-Thompson inverse-probability population weighting for case-control samples.
 
     Leakage rules enforced:
     - Any CVE published after `exclude_published_after` (such as 2026 scoreboard CVEs) is excluded
@@ -66,20 +69,37 @@ def compute_family_kev_statistics(
 
     total_hist = len(work)
     total_kev = int(work["in_kev_at_cutoff"].sum())
+    total_non_kev = max(total_hist - total_kev, 1)
     overall_rate = total_kev / total_hist if total_hist > 0 else 0.0
+
+    # Horvitz-Thompson population weighting for case-control enriched cohort
+    pop_non_kev = max(population_total_cves - population_total_kev, total_non_kev)
+    w_kev = (population_total_kev / total_kev) if total_kev > 0 else 1.0
+    w_non_kev = (pop_non_kev / total_non_kev) if total_non_kev > 0 else 1.0
+    pop_base_rate = population_total_kev / population_total_cves if population_total_cves > 0 else overall_rate
 
     rows = []
     for fam_id, grp in work.groupby("family_id"):
         n_fam = len(grp)
         k_fam = int(grp["in_kev_at_cutoff"].sum())
+        non_k_fam = n_fam - k_fam
         rate = k_fam / n_fam if n_fam > 0 else 0.0
         ci_low, ci_high = wilson_confidence_interval(k_fam, n_fam)
         rel_lift = (rate / overall_rate) if overall_rate > 0 else np.nan
+
+        est_pop_k = k_fam * w_kev
+        est_pop_n = est_pop_k + non_k_fam * w_non_kev
+        pop_rate = est_pop_k / est_pop_n if est_pop_n > 0 else 0.0
+        pop_lift = (pop_rate / pop_base_rate) if pop_base_rate > 0 else np.nan
+
         rows.append({
             "family_id": fam_id,
             "historical_total": n_fam,
             "historical_kev_count": k_fam,
             "historical_kev_rate": round(rate, 6),
+            "sample_kev_rate": round(rate, 6),
+            "population_kev_rate": round(pop_rate, 6),
+            "population_lift": round(pop_lift, 3) if pd.notna(pop_lift) else np.nan,
             "ci_95_low": ci_low,
             "ci_95_high": ci_high,
             "relative_lift_vs_overall": round(rel_lift, 3) if pd.notna(rel_lift) else np.nan,
@@ -92,6 +112,10 @@ def compute_family_kev_statistics(
         "historical_n": total_hist,
         "historical_kev_total": total_kev,
         "overall_kev_rate": round(overall_rate, 6),
+        "population_total_cves": population_total_cves,
+        "population_total_kev": population_total_kev,
+        "population_base_kev_rate": round(pop_base_rate, 6),
+        "horvitz_thompson_non_kev_weight": round(w_non_kev, 4),
     }
     return stats_df, summary_meta
 
@@ -103,6 +127,8 @@ def evaluate_granite_vs_baselines(
     n_clusters: int = 10,
     seed: int = 42,
     cutoff_date: str = "2025-12-31",
+    population_total_cves: int = 88103,
+    population_total_kev: int = 317,
 ) -> pd.DataFrame:
     """
     Compares IBM Granite semantic families against simpler baselines on historical CVEs:
@@ -112,11 +138,7 @@ def evaluate_granite_vs_baselines(
     4. Official Primary CWE Category (top K-1 CWEs + Other/Unassigned)
     5. CVSS v3 Severity Buckets (CRITICAL, HIGH, MEDIUM, LOW, MISSING)
 
-    Metrics measured:
-    - KEV Coverage (% of all historical KEVs captured without missing structured field)
-    - Top-1 Group KEV Rate & Lift over base rate
-    - Top-2 Groups Share of Total KEVs vs Share of Cohort Volume (Concentration Ratio)
-    - Gini / Chi-square-like dispersion across groups (Information Gain / Mutual Information with KEV)
+    Computes both sample-level and Horvitz-Thompson population-weighted metrics.
     """
     work = df.copy().reset_index(drop=True)
     work["granite_cluster"] = granite_labels
@@ -126,6 +148,12 @@ def evaluate_granite_vs_baselines(
     y_kev = work["cve_id"].isin(kev_set).astype(int).to_numpy()
     base_rate = float(np.mean(y_kev)) if len(y_kev) > 0 else 0.0
     total_kev = int(np.sum(y_kev))
+    total_non_kev = max(len(y_kev) - total_kev, 1)
+
+    pop_non_kev = max(population_total_cves - population_total_kev, total_non_kev)
+    w_kev = (population_total_kev / total_kev) if total_kev > 0 else 1.0
+    w_non_kev = (pop_non_kev / total_non_kev) if total_non_kev > 0 else 1.0
+    pop_base_rate = population_total_kev / population_total_cves if population_total_cves > 0 else base_rate
 
     # Baseline 2: TF-IDF + KMeans
     vec = TfidfVectorizer(max_features=2000, stop_words="english", ngram_range=(1, 2))
@@ -176,7 +204,12 @@ def evaluate_granite_vs_baselines(
             tmp.groupby("grp", as_index=False)
             .agg(n=("kev", "count"), k=("kev", "sum"))
         )
+        grp_stats["non_k"] = grp_stats["n"] - grp_stats["k"]
         grp_stats["rate"] = grp_stats["k"] / grp_stats["n"]
+        grp_stats["pop_k"] = grp_stats["k"] * w_kev
+        grp_stats["pop_n"] = grp_stats["pop_k"] + grp_stats["non_k"] * w_non_kev
+        grp_stats["pop_rate"] = grp_stats["pop_k"] / grp_stats["pop_n"]
+
         # Filter to groups with at least 20 records for reliable peak rate
         valid_grps = grp_stats[grp_stats["n"] >= min(20, max(1, len(work) // 50))]
         if len(valid_grps) == 0:
@@ -185,6 +218,8 @@ def evaluate_granite_vs_baselines(
 
         max_rate = float(valid_grps["rate"].iloc[0])
         max_lift = (max_rate / base_rate) if base_rate > 0 else np.nan
+        max_pop_rate = float(valid_grps["pop_rate"].iloc[0])
+        max_pop_lift = (max_pop_rate / pop_base_rate) if pop_base_rate > 0 else np.nan
 
         # Top 3 highest-rate families KEV capture vs volume share
         top3 = valid_grps.head(3)
@@ -192,15 +227,22 @@ def evaluate_granite_vs_baselines(
         top3_vol_share = float(top3["n"].sum() / len(work))
         enrichment_ratio = (top3_kev_share / top3_vol_share) if top3_vol_share > 0 else np.nan
 
+        top3_pop_vol_share = float(top3["pop_n"].sum() / max(float(grp_stats["pop_n"].sum()), 1.0))
+        pop_enrichment_ratio = (top3_kev_share / top3_pop_vol_share) if top3_pop_vol_share > 0 else np.nan
+
         comparison_rows.append({
             "method": name,
-            "num_groups": int( len(grp_stats) ),
+            "num_groups": int(len(grp_stats)),
             "non_missing_coverage": round(cov, 4),
             "peak_group_kev_rate": round(max_rate, 6),
             "peak_group_lift": round(max_lift, 2) if pd.notna(max_lift) else np.nan,
+            "population_peak_kev_rate": round(max_pop_rate, 6),
+            "population_peak_lift": round(max_pop_lift, 2) if pd.notna(max_pop_lift) else np.nan,
             "top3_groups_kev_share": round(top3_kev_share, 4),
             "top3_groups_volume_share": round(top3_vol_share, 4),
             "top3_concentration_ratio": round(enrichment_ratio, 2) if pd.notna(enrichment_ratio) else np.nan,
+            "population_top3_volume_share": round(top3_pop_vol_share, 4),
+            "population_top3_concentration_ratio": round(pop_enrichment_ratio, 2) if pd.notna(pop_enrichment_ratio) else np.nan,
         })
 
     return pd.DataFrame(comparison_rows)
