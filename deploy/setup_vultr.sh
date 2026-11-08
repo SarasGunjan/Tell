@@ -3,7 +3,7 @@
 #   REPO_URL, BRANCH, DEPLOY_DIR, DOMAIN, EMAIL can be overridden via environment.
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/SarasGunjan/ThreatRank.git}"
+REPO_URL="${REPO_URL:-https://github.com/SarasGunjan/Tell.git}"
 BRANCH="${BRANCH:-feature/web-frontend}"
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/tell}"
 EMAIL="${EMAIL:-}"
