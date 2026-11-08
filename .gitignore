@@ -1,33 +1,56 @@
-# Tell Platform .gitignore
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+
+# Virtual environments
 env/
 venv/
 ENV/
 .venv/
 
-# Environment and Secrets
+# Environment variables and secrets
 .env
+.env.*
 *.key
 *.pem
+.streamlit/secrets.toml
 
-# IDEs
+# IDEs and editors
 .idea/
 .vscode/
 *.swp
 *.swo
 .DS_Store
+tempCodeRunnerFile.py
 
-# Raw Data and Embedding Caches (Exclude huge 800MB CSVs from Git sync)
-data/*.csv
-!data/.gitkeep
+# Raw IBM data and processed datasets
+/data/
 *.parquet
 *.h5
 
-# Models and Caches
+# Saved machine learning models
+*.pkl
+*.joblib
+
+# Testing and development caches
 .pytest_cache/
 .coverage
 htmlcov/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+cython_debug/
+.ruff_cache/
+
+# Other local files
+.abstra/
+.pypirc
+marimo/_static/
+marimo/_lsp/
+__marimo__/
