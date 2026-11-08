@@ -20,41 +20,68 @@ logger = logging.getLogger("Tell.Store")
 ROOT = Path(__file__).resolve().parents[2]
 SIGNALS = ["exploitdb", "metasploit", "nuclei", "poc_github"]
 VULN_COLS = ["description", "cvss3_score", "attack_vector", "cwe_ids"]
+GRANITE_COLS = ["remote_local", "auth_required", "vulnerability_type", "attack_surface", "product_or_vendor",
+                "extraction_method", "extraction_confidence", "evidence"]
 OUT_COLS = [
     "cve_id", "rank", "prediction_score", "epss", "exploitdb", "metasploit", "nuclei",
     "poc_github", "published", "snapshot_month", "in_top500", "family_id", "family_name",
-    "remote_local", "auth_required", "attack_type", "description", "cvss3_score",
-    "attack_vector", "cwe_ids",
-]
+] + GRANITE_COLS + VULN_COLS
+# list payloads stay lean: no attack surface / product / extraction provenance / evidence (detail only)
+LEAN_DROP = {"attack_surface", "product_or_vendor", "extraction_method", "extraction_confidence", "evidence"}
+LIST_COLS = [c for c in OUT_COLS if c not in LEAN_DROP]
 EMBED_PAIRS = [("x", "y"), ("umap_x", "umap_y"), ("emb_x", "emb_y")]
 PRED_OPTIONAL = SIGNALS + ["published", "snapshot_month"]
-FAM_COLS = ["family_id", "family_name", "family_size", "hist_kev_rate", "avg_epss_2026", "high_risk", "key_traits"]
+FAM_COLS = ["family_id", "family_name", "family_size", "historical_kev_count", "sample_kev_rate",
+            "population_kev_rate", "population_lift", "sample_lift", "ci_95_low", "ci_95_high",
+            "representative_cves", "top_characteristics", "high_risk"]
 METRIC_COLS = [
     "model", "hits_100", "precision_100", "recall_100", "hits_250", "precision_250", "recall_250",
-    "hits_500", "precision_500", "recall_500", "roc_auc", "pr_auc",
+    "hits_500", "precision_500", "recall_500", "roc_auc", "pr_auc", "average_precision",
 ]
 SORTS = {"rank": ("rank", True), "epss": ("epss", False), "score": ("prediction_score", False)}
+METHOD_NAMES = {"public_code_then_epss": "Public Code + EPSS"}
 DEFAULT_RANKING_METHOD = "Public Code + EPSS"
+# Member 2: Family 8 mixes web XSS/CSRF with browser-engine zero-days.
+FAMILY_CAVEATS = {"8": "Family 8 mixes web XSS/CSRF issues with browser-engine zero-days, so its historical rate "
+                       "blends two different threat profiles. Read it with care."}
+HIST_EXAMPLES_LABEL = ("Representative historical CVEs from this family (Member 2) - same family, "
+                       "not similarity-ranked")
 RELOAD_INTERVAL = 2.0  # seconds between results-file stat checks
+BENCH_SUB = "benchmark_2026"
 
-# key -> spec. `names`: accepted filenames (first = canonical). `cols`: column aliases.
+# key -> spec. `search`: ordered (dir, filename) candidates, first existing wins (first = canonical).
+# dirs: res = Member 1 results dir, bench = {granite}/benchmark_2026 (2026 families), gran = {granite} (historical).
+def _s(dirs_names, owner, required, cols=None, optional=False, **kw):
+    return dict(search=dirs_names, owner=owner, required=required, cols=cols or {}, optional=optional, **kw)
+
+
 SPECS = {
-    "predictions": dict(names=["predictions.csv", "predictions_2026.csv"], owner="Member 1",
-                        required=["cve_id", "rank", "prediction_score", "epss"], cols={"score": "prediction_score"}),
-    "metrics": dict(names=["metrics.csv", "model_comparison.csv"], owner="Member 1",
-                    required=["model", "hits_100", "hits_250", "hits_500"], cols={}),
-    "top500": dict(names=["top500.csv"], owner="Member 1", required=["cve_id"], cols={}, optional=True),
-    "families": dict(names=["families.csv"], owner="Member 2", required=["cve_id", "family_id"], cols={},
-                     optional=True),
-    "granite": dict(names=["granite_features.csv"], owner="Member 2",
-                    required=["cve_id", "family_id", "remote_local", "auth_required"], cols={}),
-    "family_summary": dict(names=["family_summary.csv"], owner="Member 2",
-                           required=["family_id", "family_name", "family_size"], cols={}),
+    "predictions": _s([("res", "predictions.csv"), ("res", "predictions_2026.csv")], "Member 1",
+                      ["cve_id", "rank", "epss"], {"score": "prediction_score"}),
+    "metrics": _s([("res", "model_metrics.csv"), ("res", "metrics.csv"), ("res", "model_comparison.csv")], "Member 1",
+                  ["model", "hits_100", "hits_250", "hits_500"]),
+    "patch_budget": _s([("res", "patch_budget.csv")], "Member 1", ["model", "budget", "hits"], optional=True),
+    "top500": _s([("res", "top500.csv")], "Member 1", ["cve_id"], optional=True),
+    "families": _s([("bench", "families.csv"), ("res", "families.csv")], "Member 2", ["cve_id", "family_id"],
+                   optional=True),
+    "granite": _s([("bench", "granite_features.csv"), ("res", "granite_features.csv")], "Member 2",
+                  ["cve_id", "family_id", "remote_local", "auth_required"]),
+    "family_summary": _s([("bench", "family_summary.csv"), ("res", "family_summary.csv")], "Member 2",
+                         ["family_id", "family_name", "family_size"]),
+    "hist_family_summary": _s([("gran", "family_summary.csv")], "Member 2",
+                              ["family_id", "family_name", "family_size"], optional=True, research=True),
+    "baselines": _s([("gran", "baseline_comparison.csv")], "Member 2", ["method"], optional=True, research=True),
+    "temporal": _s([("gran", "temporal_validation_2024_2025.csv")], "Member 2",
+                   ["family_id", "train_2024_rate", "val_2025_n", "val_2025_kev"], optional=True, research=True),
+    "cwe": _s([("gran", "cwe_semantic_analysis.csv")], "Member 2", ["family_id", "cwe_id", "cve_count"],
+              optional=True, research=True),
 }
+RESEARCH_JSON = "research_metrics.json"
 WAITING = {  # dataset -> "who / which file" for honest empty states
     "predictions": ("Member 1", "predictions.csv"),
-    "metrics": ("Member 1", "metrics.csv"),
-    "families": ("Member 2", "family_summary.csv"),
+    "metrics": ("Member 1", "model_metrics.csv"),
+    "families": ("Member 2", "benchmark_2026/family_summary.csv"),
+    "research": ("Member 2", "temporal_validation_2024_2025.csv"),
 }
 
 
@@ -82,21 +109,59 @@ def _data_dir() -> Path:
     return Path(os.environ.get("THREATRANK_DATA_DIR") or ROOT / "data")
 
 
-def find_file(rd: Path, spec: Dict[str, Any]) -> Optional[Path]:
-    for n in spec["names"]:
-        if (rd / n).is_file():
-            return rd / n
+def _hist(values: np.ndarray, edges: np.ndarray) -> List[int]:
+    v = np.clip(values, edges[0], edges[-1])
+    return np.histogram(v, bins=edges)[0].astype(int).tolist()
+
+
+def granite_dir() -> Path:
+    p = Path(os.environ.get("TELL_GRANITE_DIR") or "outputs/granite")
+    return p if p.is_absolute() else ROOT / p
+
+
+def make_dirs(rd: Path, gd: Optional[Path] = None) -> Dict[str, Path]:
+    gd = gd if gd is not None else granite_dir()
+    return {"res": Path(rd), "bench": Path(gd) / BENCH_SUB, "gran": Path(gd)}
+
+
+def find_file(dirs: Dict[str, Path], spec: Dict[str, Any]) -> Optional[Path]:
+    for d, n in spec["search"]:
+        if (dirs[d] / n).is_file():
+            return dirs[d] / n
     return None
 
 
-def read_dataset(rd: Path, key: str) -> Tuple[Optional[pd.DataFrame], Dict[str, Any]]:
-    """Read one results file. Returns (df or None if unavailable, status info). Never raises."""
+def _label(dirs: Dict[str, Path], d: str, n: str) -> str:
+    return n if d == "res" else ("%s/%s" % (BENCH_SUB, n) if d == "bench" else "granite/" + n)
+
+
+def norm_family_id(s: pd.Series) -> pd.Series:
+    """family_id as a clean string: 3 / 3.0 -> "3"; text ids (FAM-01) kept; blanks -> None."""
+    n = pd.to_numeric(s, errors="coerce")
+    out = s.astype(object).where(s.notna(), None)
+    out = out.map(lambda v: None if v is None else str(v).strip())
+    isint = n.notna() & (n % 1 == 0)
+    if isint.any():
+        out = out.where(~isint, n.where(isint).fillna(0).astype("int64").astype(str))
+    return out
+
+
+def fid_sort_key(fid: Any) -> tuple:
+    f = str(fid)
+    return (0, int(f), "") if f.isdigit() else (1, 0, f)
+
+
+def read_dataset(dirs: Dict[str, Path], key: str) -> Tuple[Optional[pd.DataFrame], Dict[str, Any]]:
+    """Read one data file. Returns (df or None if unavailable, status info). Never raises."""
     spec = SPECS[key]
-    path = find_file(rd, spec)
-    info = {"name": path.name if path else spec["names"][0], "owner": spec["owner"], "present": path is not None,
+    path = find_file(dirs, spec)
+    lab = _label(dirs, *next(((d, n) for d, n in spec["search"] if (dirs[d] / n) == path), spec["search"][0]))
+    info = {"name": lab, "owner": spec["owner"], "present": path is not None,
             "rows": None, "columns": [], "missing_required": [], "modified": None}  # type: Dict[str, Any]
     if spec.get("optional"):
         info["optional"] = True
+    if spec.get("research"):
+        info["group"] = "research"
     if path is None:
         return None, info
     st = path.stat()
@@ -108,6 +173,8 @@ def read_dataset(rd: Path, key: str) -> Tuple[Optional[pd.DataFrame], Dict[str, 
         info["error"] = "unreadable"
         return None, info
     df = df.rename(columns={a: c for a, c in spec["cols"].items() if a in df.columns and c not in df.columns})
+    if "family_id" in df.columns:
+        df["family_id"] = norm_family_id(df["family_id"])
     info["rows"] = int(len(df))
     info["columns"] = [str(c) for c in df.columns]
     missing = [c for c in spec["required"] if c not in df.columns]
@@ -118,9 +185,30 @@ def read_dataset(rd: Path, key: str) -> Tuple[Optional[pd.DataFrame], Dict[str, 
     return df, info
 
 
-def _hist(values: np.ndarray, edges: np.ndarray) -> List[int]:
-    v = np.clip(values, edges[0], edges[-1])
-    return np.histogram(v, bins=edges)[0].astype(int).tolist()
+def read_research_json(dirs: Dict[str, Path]) -> Tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
+    p = dirs["gran"] / RESEARCH_JSON
+    info = {"name": "granite/" + RESEARCH_JSON, "owner": "Member 2", "present": p.is_file(), "rows": None, "columns": [],
+            "missing_required": [], "modified": None, "optional": True, "group": "research"}  # type: Dict[str, Any]
+    if not p.is_file():
+        return None, info
+    info["modified"] = datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc).isoformat(timespec="seconds")
+    try:
+        j = json.loads(p.read_text())
+        if not isinstance(j, dict):
+            raise ValueError("not an object")
+        info["columns"] = sorted(str(k) for k in j.keys())
+        return j, info
+    except Exception as e:
+        logger.warning("%s: cannot read (%s)", RESEARCH_JSON, type(e).__name__)
+        info["error"] = "unreadable"
+        return None, info
+
+
+def method_display(raw: str) -> str:
+    raw = str(raw).strip()
+    if raw in METHOD_NAMES:
+        return METHOD_NAMES[raw]
+    return raw.replace("_", " ").title() if "_" in raw else raw
 
 
 def _num(df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
@@ -130,11 +218,21 @@ def _num(df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
     return df
 
 
+def _breakdown(series: pd.Series) -> List[Dict[str, Any]]:
+    vc = series.fillna("unknown").value_counts()
+    tot = int(vc.sum()) or 1
+    return [{"label": str(k), "count": int(v), "share": float(v) / tot} for k, v in vc.items()]
+
+
+RANK_BANDS = [(1, 100), (101, 250), (251, 500), (501, 1000), (1001, 5000), (5001, 20000)]
+
+
 class Store:
     def __init__(self, results_path: Optional[Path] = None, data_dir: Optional[Path] = None,
-                 label: Optional[str] = None):
+                 label: Optional[str] = None, granite_path: Optional[Path] = None):
         rd = Path(results_path) if results_path else results_dir()
         data_dir = Path(data_dir) if data_dir else _data_dir()
+        dirs = make_dirs(rd, Path(granite_path) if granite_path else None)
         self.label = label or data_label()
         try:
             self.results_rel = str(rd.resolve().relative_to(ROOT))
@@ -143,15 +241,21 @@ class Store:
         infos = {}  # type: Dict[str, Dict[str, Any]]
         raw = {}
         for k in SPECS:
-            raw[k], infos[k] = read_dataset(rd, k)
-        self.files = [infos[k] for k in SPECS if not (SPECS[k].get("optional") and k == "families" and not infos[k]["present"])]
+            raw[k], infos[k] = read_dataset(dirs, k)
+        self.research_meta, meta_info = read_research_json(dirs)
+        self.files = [infos[k] for k in SPECS
+                      if not (SPECS[k].get("optional") and not infos[k]["present"] and k in ("families",))]
+        self.files.append(meta_info)
 
         # ---- predictions
         preds = raw["predictions"]
         self.has_predictions = preds is not None
         if preds is None:
             preds = pd.DataFrame(columns=["cve_id", "rank", "prediction_score", "epss"])
+        if "prediction_score" not in preds.columns:
+            preds["prediction_score"] = np.nan  # Member 1 ships a rank-only file: never fabricate a score
         preds = _num(preds.drop_duplicates("cve_id"), ["rank", "prediction_score", "epss"] + SIGNALS)
+        self.has_score = bool(self.has_predictions and preds["prediction_score"].notna().any())
         for c in PRED_OPTIONAL:
             if c not in preds.columns:
                 preds[c] = np.nan if c in SIGNALS else None
@@ -160,7 +264,7 @@ class Store:
         method = DEFAULT_RANKING_METHOD
         for c in ("ranking_method", "method"):
             if c in preds.columns and preds[c].notna().any():
-                method = str(preds[c].dropna().iloc[0])
+                method = method_display(preds[c].dropna().iloc[0])
                 break
         self.ranking_method = os.environ.get("TELL_RANKING_METHOD", "").strip() or method
 
@@ -176,31 +280,45 @@ class Store:
             self.top500_ids = set()
             self.top500_source = None
 
-        # ---- metrics
+        # ---- metrics (model_metrics.csv is first in alias order so a stale metrics.csv can never win)
         m = raw["metrics"]
         self.metrics = None if m is None else _num(m.reindex(columns=METRIC_COLS), METRIC_COLS[1:])
+        self.metrics_source = infos["metrics"]["name"] if m is not None else None
+        pb = raw["patch_budget"]
+        self.patch_budget_raw = None if pb is None else _num(pb[["model", "budget", "hits"]].copy(), ["budget", "hits"])
 
-        # ---- family summary + per-CVE family info
+        # ---- family summary + per-CVE family info (Member 2 benchmark preferred)
         fs = raw["family_summary"]
-        self.fam_summary = None if fs is None else fs.reindex(columns=FAM_COLS)
-        self.family_ids = set(self.fam_summary["family_id"]) if self.fam_summary is not None else set()
+        self.fam_summary = None
+        if fs is not None:
+            fs = fs.drop_duplicates("family_id")
+            fs = fs.reindex(columns=FAM_COLS)
+            fs = _num(fs, ["family_size", "historical_kev_count", "sample_kev_rate", "population_kev_rate",
+                           "population_lift", "sample_lift", "ci_95_low", "ci_95_high"])
+            fs = fs.iloc[sorted(range(len(fs)), key=lambda i: fid_sort_key(fs.iloc[i]["family_id"]))]
+            self.fam_summary = fs.reset_index(drop=True)
         self.families_source = None  # type: Optional[str]
         fam = None
-        if raw["families"] is not None:
-            fam = raw["families"].drop(columns=["epss"], errors="ignore")
-            self.families_source = infos["families"]["name"]
-        elif raw["granite"] is not None:
+        if raw["granite"] is not None:
             fam = raw["granite"].copy()
             self.families_source = infos["granite"]["name"]
-            if fs is not None:
-                fam = fam.merge(fs[["family_id", "family_name"]].drop_duplicates("family_id"),
-                                on="family_id", how="left")
+            if raw["families"] is not None:  # explicit family assignment wins
+                fam = fam.drop(columns=["family_id"]).merge(
+                    raw["families"][["cve_id", "family_id"]].drop_duplicates("cve_id"), on="cve_id", how="left")
+        elif raw["families"] is not None:
+            fam = raw["families"].drop(columns=["epss"], errors="ignore").copy()
+            self.families_source = infos["families"]["name"]
         if fam is not None:
             fam = fam.drop_duplicates("cve_id")
-            for c in ("family_name", "remote_local", "auth_required", "attack_type"):
+            if "family_name" in fam.columns:
+                fam = fam.drop(columns=["family_name"])
+            if self.fam_summary is not None:
+                fam = fam.merge(self.fam_summary[["family_id", "family_name"]].drop_duplicates("family_id"),
+                                on="family_id", how="left")
+            for c in ["family_name"] + GRANITE_COLS:
                 if c not in fam.columns:
                     fam[c] = None
-            keep = ["cve_id", "family_id", "family_name", "remote_local", "auth_required", "attack_type"]
+            keep = ["cve_id", "family_id", "family_name"] + GRANITE_COLS
             for cx, cy in EMBED_PAIRS:  # optional Granite embedding projection (Member 2)
                 if cx in fam.columns and cy in fam.columns:
                     ex, ey = pd.to_numeric(fam[cx], errors="coerce"), pd.to_numeric(fam[cy], errors="coerce")
@@ -210,9 +328,9 @@ class Store:
                         break
             fam = fam[keep]
         else:
-            fam = pd.DataFrame(columns=["cve_id", "family_id", "family_name", "remote_local", "auth_required",
-                                        "attack_type"])
+            fam = pd.DataFrame(columns=["cve_id", "family_id", "family_name"] + GRANITE_COLS)
         self.has_cve_families = raw["families"] is not None or raw["granite"] is not None
+        self.family_ids = set(self.fam_summary["family_id"]) if self.fam_summary is not None else set()
 
         # ---- merge
         df = preds.merge(fam, on="cve_id", how="left")
@@ -232,6 +350,9 @@ class Store:
         self._desc_l = df["description"].fillna("").astype(str).str.lower()
 
         self._compute_aggregates()
+        self._family_records()
+        from .research import build_research
+        self.research = build_research(raw, self.research_meta, self.fam_summary)
 
     # ---------- loading ----------
     @staticmethod
@@ -268,6 +389,8 @@ class Store:
             return self.metrics is not None
         if dataset == "families":
             return self.fam_summary is not None
+        if dataset == "research":
+            return bool(self.research.get("available"))
         return False
 
     # ---------- aggregates ----------
@@ -289,13 +412,17 @@ class Store:
         self.top500_df = top
         if not self.has_predictions or df.empty:
             self.distributions = {"score_hist": None, "epss_hist": None, "published_by_month": None,
-                                  "remote_local": [], "auth_required": []}
+                                  "rank_epss": None, "remote_local": [], "auth_required": [],
+                                  "vulnerability_type": []}
             self.signal_counts = None
-            self.top500_arrays = {"cve_id": [], "prediction_score": [], "epss": []}
             self.stats = {}
             return
 
-        s_edges = np.linspace(df["prediction_score"].min(), df["prediction_score"].max(), 31)
+        score_hist = None
+        if self.has_score:
+            s_edges = np.linspace(df["prediction_score"].min(), df["prediction_score"].max(), 31)
+            score_hist = {"edges": s_edges.tolist(), "all": _hist(df["prediction_score"].values, s_edges),
+                          "top500": _hist(top["prediction_score"].values, s_edges)}
         pos = df.loc[df["epss"] > 0, "epss"]
         if len(pos):
             lo = 10.0 ** np.floor(np.log10(pos.min()))
@@ -318,34 +445,61 @@ class Store:
             pm_top = top["published"].astype(str).str[:7].value_counts()
             pub = {"months": months, "all": [int(pm_all.get(m, 0)) for m in months],
                    "top500": [int(pm_top.get(m, 0)) for m in months]}
+
+        # EPSS by rank band: computed from the ranking, no model score needed
+        n = int(len(df))
+        bands = [(lo_, min(hi_, n)) for lo_, hi_ in RANK_BANDS if lo_ <= n] + ([(20001, n)] if n > 20000 else [])
+        rank_epss = []
+        for lo_, hi_ in bands:
+            seg = df[(df["rank"] >= lo_) & (df["rank"] <= hi_)]
+            if seg.empty:
+                continue
+            anyv = float((seg[self.signals_available] > 0).any(axis=1).mean()) if self.signals_available else None
+            rank_epss.append({"label": "%s-%s" % ("{:,}".format(lo_), "{:,}".format(hi_)), "from": lo_, "to": hi_,
+                              "count": int(len(seg)), "median_epss": float(seg["epss"].median()),
+                              "mean_epss": float(seg["epss"].mean()), "share_with_signal": anyv})
         self.distributions = {
-            "score_hist": {"edges": s_edges.tolist(),
-                           "all": _hist(df["prediction_score"].values, s_edges),
-                           "top500": _hist(top["prediction_score"].values, s_edges)},
+            "score_hist": score_hist,
             "epss_hist": None if e_edges is None else {
                 "edges": e_edges.tolist(), "all": _hist(df["epss"].values, e_edges),
                 "top500": _hist(top["epss"].values, e_edges)},
             "published_by_month": pub,
+            "rank_epss": rank_epss,
             "remote_local": counts("remote_local"),
             "auth_required": counts("auth_required"),
+            "vulnerability_type": counts("vulnerability_type"),
         }
         self.signal_counts = {"all": self._signal_counts(df), "top500": self._signal_counts(top)}
-        self.top500_arrays = {
-            "cve_id": top["cve_id"].tolist(),
-            "prediction_score": top["prediction_score"].tolist(),
-            "epss": top["epss"].tolist(),
-        }
         q = [0.25, 0.5, 0.75, 0.95]
         self.stats = {
-            "score_q_all": dict(zip(q, df["prediction_score"].quantile(q).tolist())),
-            "score_q_top500": dict(zip(q, top["prediction_score"].quantile(q).tolist())),
             "epss_q_all": dict(zip(q, df["epss"].quantile(q).tolist())),
             "epss_q_top500": dict(zip(q, top["epss"].quantile(q).tolist())),
-            "score_max": float(df["prediction_score"].max()),
-            "score_min_top500": float(top["prediction_score"].min()) if len(top) else None,
             "epss_lt_001_all": float((df["epss"] < 0.01).mean()),
             "epss_lt_001_top500": float((top["epss"] < 0.01).mean()) if len(top) else None,
         }
+        if self.has_score:
+            self.stats.update({
+                "score_q_all": dict(zip(q, df["prediction_score"].quantile(q).tolist())),
+                "score_q_top500": dict(zip(q, top["prediction_score"].quantile(q).tolist())),
+                "score_max": float(df["prediction_score"].max()),
+                "score_min_top500": float(top["prediction_score"].min()) if len(top) else None})
+
+    def _family_records(self) -> None:
+        recs = []  # type: List[Dict[str, Any]]
+        if self.fam_summary is not None:
+            counts = self.df.groupby("family_id")["in_top500"].sum() if self.has_predictions else {}
+            sizes = self.df["family_id"].value_counts() if self.has_predictions else {}
+            for r in to_py(self.fam_summary):
+                reps = r.get("representative_cves")
+                r["representative_cves"] = [x.strip() for x in str(reps).split(",") if x.strip()] if reps else []
+                r["high_risk"] = None if r.get("high_risk") is None else bool(r["high_risk"])
+                fid = r["family_id"]
+                r["in_top500"] = int(counts.get(fid, 0)) if self.has_predictions else None
+                r["scored_count"] = int(sizes.get(fid, 0)) if self.has_predictions else None
+                r["caveat"] = FAMILY_CAVEATS.get(fid)
+                r["rate_basis"] = "Observed (historical), population-weighted"
+                recs.append(r)
+        self._families = recs
 
     @staticmethod
     def _embedding(df: pd.DataFrame) -> Dict[str, Any]:
@@ -366,11 +520,8 @@ class Store:
         else:
             df = self.df  # sorted by rank
             fdf = df[["family_id", "family_name"]].dropna(subset=["family_id"]).drop_duplicates("family_id")
-            fdf = fdf.sort_values("family_id")
-            hr = {}
-            if self.fam_summary is not None:
-                for r in self.fam_summary.itertuples():
-                    hr[r.family_id] = None if pd.isna(r.high_risk) else bool(r.high_risk)
+            fdf = fdf.iloc[sorted(range(len(fdf)), key=lambda i: fid_sort_key(fdf.iloc[i]["family_id"]))]
+            hr = {f["family_id"]: f["high_risk"] for f in self._families}
             fams = [{"family_id": r.family_id, "family_name": None if pd.isna(r.family_name) else r.family_name,
                      "high_risk": hr.get(r.family_id)} for r in fdf.itertuples()]
             idx = {f["family_id"]: i for i, f in enumerate(fams)}
@@ -382,7 +533,6 @@ class Store:
                 "n": int(len(df)),
                 "ids": df["cve_id"].tolist(),
                 "rank": df["rank"].astype(int).tolist(),
-                "score": df["prediction_score"].round(4).tolist(),
                 "epss": df["epss"].fillna(0).round(5).tolist(),
                 "fam": [idx.get(f, -1) if isinstance(f, str) else -1 for f in df["family_id"]],
                 "sig": sig.tolist(),
@@ -392,6 +542,8 @@ class Store:
                 "ranking_method": self.ranking_method,
                 "signals_available": list(self.signals_available),  # bit order: exploitdb=1 metasploit=2 nuclei=4 poc_github=8
             }
+            if self.has_score:
+                out["score"] = df["prediction_score"].round(4).tolist()
         self._galaxy = out
         return out
 
@@ -403,9 +555,31 @@ class Store:
     def status_files(self) -> List[Dict[str, Any]]:
         return self.files
 
+    def ranking_row(self) -> Optional[Dict[str, Any]]:
+        """The metrics row for the current ranking method (matched by display name), else None."""
+        m = self.metrics_list
+        want = self.ranking_method.strip().lower()
+        for r in m:
+            if str(r["model"]).strip().lower() == want:
+                return r
+        return None
+
+    def patch_budget(self) -> List[Dict[str, Any]]:
+        if self.patch_budget_raw is not None:
+            return [dict(r, derived=False) for r in to_py(self.patch_budget_raw)]
+        if self.metrics is None:
+            return []
+        out = []
+        for r in self.metrics_list:
+            for k in (100, 250, 500):
+                if r.get("hits_%d" % k) is not None:
+                    out.append({"model": r["model"], "budget": k, "hits": r["hits_%d" % k], "derived": True})
+        return out
+
     def overview(self) -> Dict[str, Any]:
-        out = {"total_cves": None, "top500_count": None, "family_count": None, "positives_2025": None,
-               "best_hits_500": None, "epss_hits_500": None, "tell": None,
+        out = {"total_cves": None, "top500_count": None, "family_count": None,
+               "best_hits_500": None, "epss_hits_500": None, "ranking": None, "lift_over_epss": None,
+               "ranking_method": self.ranking_method, "has_score": self.has_score,
                "signal_counts": self.signal_counts}  # type: Dict[str, Any]
         if self.has_predictions:
             out["total_cves"] = int(len(self.df))
@@ -418,47 +592,71 @@ class Store:
             hits = m["hits_500"]
             if hits.notna().any():
                 out["best_hits_500"] = ml[int(m.index.get_loc(hits.idxmax()))]
-            rec = m["recall_500"].iloc[0]
-            if pd.notna(rec) and rec > 0 and pd.notna(m["hits_500"].iloc[0]):
-                out["positives_2025"] = int(round(m["hits_500"].iloc[0] / rec))
-            e = m[m["model"].astype(str).str.contains("EPSS", case=False)]
+            names = m["model"].astype(str).str.strip().str.lower()
+            e = m[names == "epss"]
+            if not len(e):
+                e = m[names.str.startswith("epss")]
             if len(e) and pd.notna(e.iloc[0]["hits_500"]):
                 out["epss_hits_500"] = int(e.iloc[0]["hits_500"])
-            t = m[m["model"].astype(str).str.contains("Tell", case=False)]
-            if len(t):
-                out["tell"] = ml[int(m.index.get_loc(t.index[0]))]
+            out["ranking"] = self.ranking_row()
+            rk = out["ranking"]
+            if rk and rk.get("hits_500") is not None and out["epss_hits_500"]:
+                out["lift_over_epss"] = float(rk["hits_500"]) / out["epss_hits_500"]
         return out
 
     def families(self) -> List[Dict[str, Any]]:
-        return [] if self.fam_summary is None else to_py(self.fam_summary)
+        return self._families
 
     def family(self, fid: str) -> Optional[Dict[str, Any]]:
-        if self.fam_summary is None:
-            return None
-        r = self.fam_summary[self.fam_summary["family_id"] == fid]
-        return to_py(r)[0] if len(r) else None
+        return next((f for f in self._families if f["family_id"] == fid), None)
 
     def family_detail(self, fid: str) -> Optional[Dict[str, Any]]:
         fam = self.family(fid)
         if fam is None:
             return None
         d = self.df[self.df["family_id"] == fid]
+        hist = None
+        hf = (self.research.get("families") or {}).get("data") or []
+        for h in hf:
+            if h.get("family_id") == fid:
+                reps = h.get("representative_cves")
+                hist = {"family_name": h.get("family_name"),
+                        "representative_cves": [x.strip() for x in str(reps).split(",") if x.strip()] if reps else []}
         return {
             "family": fam,
-            "top_cves": to_py(d.head(20)[OUT_COLS]),  # df is sorted by rank
+            "top_cves": self._rows(d.head(20), LIST_COLS),  # df is sorted by rank
             "in_top500": int(d["in_top500"].sum()) if self.has_predictions else None,
             "signal_counts": self._signal_counts(d),
+            "attack_surface": _breakdown(d["attack_surface"]) if len(d) else [],
+            "vulnerability_type": _breakdown(d["vulnerability_type"]) if len(d) else [],
+            "historical_examples": hist["representative_cves"] if hist else [],
+            "historical_examples_label": HIST_EXAMPLES_LABEL,
+            "historical_family_name": hist["family_name"] if hist else None,
+            "representative_2026": fam["representative_cves"],
+            "representative_2026_label": "Representative 2026 CVEs from this family (Member 2) - same family, "
+                                         "not similarity-ranked",
+            "caveat": fam["caveat"],
         }
+
+    def _rows(self, d: pd.DataFrame, cols: List[str]) -> List[Dict[str, Any]]:
+        out = to_py(d[cols])
+        if "evidence" in cols:
+            for r in out:
+                if r.get("evidence"):
+                    r["evidence"] = str(r["evidence"])[:300]
+        return out
 
     def get_cve(self, cve_id: str) -> Optional[Dict[str, Any]]:
         i = self._pos.get(cve_id.upper())
         if i is None:
             return None
-        return to_py(self.df.iloc[[i]][OUT_COLS])[0]
+        r = self._rows(self.df.iloc[[i]], OUT_COLS)[0]
+        r["extraction_source"] = "IBM Granite extraction (Member 2)" if r.get("extraction_method") else None
+        return r
 
     def cves_by_ids(self, ids: List[str]) -> List[Dict[str, Any]]:
         idx = [self._pos[i] for i in ids if i in self._pos]
-        return to_py(self.df.iloc[idx][OUT_COLS]) if idx else []
+        return self._rows(self.df.iloc[idx], LIST_COLS) if idx else []
 
     def search(self, q: Optional[str] = None, family_id: Optional[str] = None,
                min_epss: Optional[float] = None, signals: Optional[List[str]] = None,
@@ -482,9 +680,11 @@ class Store:
                 mask &= df[s] > 0
         sub = df[mask]
         col, asc = SORTS.get(sort, SORTS["rank"])
+        if col == "prediction_score" and not self.has_score:
+            col = "rank"
         if col != "rank":
             sub = sub.sort_values([col, "rank"], ascending=[asc, True], kind="stable")
-        return int(len(sub)), to_py(sub.iloc[offset:offset + limit][OUT_COLS])
+        return int(len(sub)), self._rows(sub.iloc[offset:offset + limit], LIST_COLS)
 
 
 # ---------------------------------------------------------------- hot reload
@@ -495,33 +695,33 @@ _checked = 0.0
 _lock = threading.Lock()
 
 
-def _signature(rd: Path) -> tuple:
+def _signature(dirs: Dict[str, Path]) -> tuple:
     out = []
-    for spec in SPECS.values():
-        for n in spec["names"]:
-            try:
-                st = (rd / n).stat()
-                out.append((n, st.st_mtime_ns, st.st_size))
-            except OSError:
-                out.append((n, None, None))
+    names = [(d, n) for spec in SPECS.values() for d, n in spec["search"]] + [("gran", RESEARCH_JSON)]
+    for d, n in names:
+        try:
+            st = (dirs[d] / n).stat()
+            out.append((d, n, st.st_mtime_ns, st.st_size))
+        except OSError:
+            out.append((d, n, None, None))
     return tuple(out)
 
 
 def get_store() -> Store:
-    """Current store; re-stats results files at most once per RELOAD_INTERVAL and swaps atomically."""
+    """Current store; re-stats data files at most once per RELOAD_INTERVAL and swaps atomically."""
     global _store, _key, _sig, _checked
-    rd, label = results_dir(), data_label()
-    key = (str(rd), label, str(_data_dir()))
+    rd, gd, label = results_dir(), granite_dir(), data_label()
+    key = (str(rd), str(gd), label, str(_data_dir()))
     with _lock:
         now = time.monotonic()
         if _store is not None and key == _key and now - _checked < RELOAD_INTERVAL:
             return _store
-        sig = _signature(rd)
+        sig = _signature(make_dirs(rd, gd))
         if _store is not None and key == _key and sig == _sig:
             _checked = now
             return _store
         try:
-            new = Store(rd, label=label)
+            new = Store(rd, label=label, granite_path=gd)
         except Exception as e:
             if _store is None:
                 raise

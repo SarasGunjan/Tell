@@ -19,7 +19,7 @@ export type Pos = { x: Float32Array; y: Float32Array };
 export type GalaxyData = GalaxyOk & {
   hash: Uint32Array; rad: Float32Array; // rad = star radius in px at 1x
   pos: { spiral: Pos; rows: Pos; embedding: Pos | null };
-  epssA: Float32Array; scoreA: Float32Array; sigA: Uint8Array; famA: Int16Array; topA: Uint8Array;
+  epssA: Float32Array; sigA: Uint8Array; famA: Int16Array; topA: Uint8Array;
   idx: Map<string, number>; nFam: number; hasFamilies: boolean;
 };
 
@@ -53,7 +53,7 @@ export function prepare(g: GalaxyOk): GalaxyData {
   const n = g.n, F = g.families.length;
   const hash = new Uint32Array(n), ux = new Float32Array(n), uy = new Float32Array(n), rad = new Float32Array(n);
   const rx = new Float32Array(n), ry = new Float32Array(n);
-  const epssA = Float32Array.from(g.epss), scoreA = Float32Array.from(g.score), sigA = Uint8Array.from(g.sig);
+  const epssA = Float32Array.from(g.epss), sigA = Uint8Array.from(g.sig);
   const famA = Int16Array.from(g.fam), topA = Uint8Array.from(g.top500);
   const idx = new Map<string, number>();
   for (let i = 0; i < n; i++) {
@@ -79,7 +79,7 @@ export function prepare(g: GalaxyOk): GalaxyData {
   let emb: Pos | null = null;
   const gx = (g as { x?: (number | null)[] }).x, gy = (g as { y?: (number | null)[] }).y;
   if (gx && gy) emb = normalizeEmbedding(gx, gy, ux, uy);
-  const base = { ...g, hash, rad, epssA, scoreA, sigA, famA, topA, idx, nFam: F, hasFamilies: F > 0 && famA.some((x) => x >= 0) };
+  const base = { ...g, hash, rad, epssA, sigA, famA, topA, idx, nFam: F, hasFamilies: F > 0 && famA.some((x) => x >= 0) };
   const d = { ...base, pos: { spiral: { x: ux, y: uy }, rows: { x: rx, y: ry }, embedding: emb } } as GalaxyData;
   for (let i = 0; i < n; i++) rad[i] = ENCODINGS.size.px(d, i);
   return d;

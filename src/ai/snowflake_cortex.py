@@ -105,7 +105,8 @@ class SnowflakeCortexAssistant:
 
         cve_id = context.get("cve_id", "Unknown CVE")
         rank = context.get("rank", "N/A")
-        score = context.get("prediction_score", 0.0)
+        score = context.get("prediction_score")
+        score_str = f"**Threat Score:** `{score:.4f}` | " if isinstance(score, (int, float)) else ""
         epss = context.get("epss", 0.0)
         has_meta = context.get("metasploit", 0) > 0
         has_nuclei = context.get("nuclei", 0) > 0
@@ -127,12 +128,12 @@ class SnowflakeCortexAssistant:
 
         response = f"""### Security Intelligence Assessment: {cve_id} (Rank #{rank})
 
-**Threat Score:** `{score:.4f}` | **Point-in-Time EPSS:** `{epss:.4f}` | **IBM Granite Family:** {family_name}
+{score_str}**Point-in-Time EPSS:** `{epss:.4f}` | **IBM Granite Family:** {family_name}
 
 #### 1. Why Is This Prioritized?
-- **Exploitation Infrastructure:** {exploit_summary}. In historical cohorts, vulnerabilities possessing active Metasploit or Nuclei modules demonstrated an in-the-wild exploitation rate over 30x higher than base vulnerabilities.
+- **Exploitation Infrastructure:** {exploit_summary}.
 - **Exposure Profile:** IBM Granite classifies this threat as `{remote_local}` access with `{auth_req}` authentication prerequisites. Pre-authentication network-accessible flaws are the prime target for opportunistic threat actors and automated scanning campaigns.
-- **Vulnerability Mechanism:** Corresponds to `{family_name}`. Historically, this semantic family exhibits a high conversion velocity into active threat campaigns.
+- **Vulnerability Mechanism:** Corresponds to `{family_name}`. See the Families page for this family's historical KEV pattern (population-weighted; not this CVE's probability).
 
 #### 2. Technical Evidence & Grounding
 - **CVE Publication Month:** Snapshot captured at initial disclosure.

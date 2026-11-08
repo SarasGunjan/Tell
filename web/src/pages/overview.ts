@@ -53,15 +53,15 @@ const SIG_KEYS: { key: keyof SignalCounts; label: string }[] = [
 ];
 
 function render(o: Overview, d: Distributions): HTMLElement {
-  const best = o.best_hits_500, tell = o.tell;
+  const best = o.best_hits_500, tell = o.ranking;
   const hasPreds = o.total_cves !== null;
 
   const kpis = h('div', { class: 'grid grid-3' },
-    kpi({ target: 'kpi-candidates', label: 'CVEs scored', value: hasPreds ? fmtInt(o.total_cves) : null, waiting: 'predictions',
-      sub: `${fmtInt(o.top500_count)} shortlisted in the Top 500 · ${o.family_count === null ? 'families not computed yet' : `${fmtInt(o.family_count)} vulnerability families`}`, prov: 'snapshot' }),
-    kpi({ target: 'kpi-hits500', label: tell ? `Hits@500 · ${tell.model}` : 'Hits@500 · Tell', value: tell ? String(tell.hits_500) : null, waiting: 'metrics',
-      sub: tell ? `${o.positives_2025 === null ? 'historical KEV positives not computed yet' : `of ${o.positives_2025} historical KEV positives`}${tell.recall_500 === null ? '' : ` (recall ${fmtPct(tell.recall_500)})`}` : undefined, prov: 'observed' }),
-    kpi({ target: 'kpi-lift', label: 'Tell lift over EPSS at 500', value: tell && o.epss_hits_500 !== null ? (o.epss_hits_500 ? `${(tell.hits_500 / o.epss_hits_500).toFixed(2)}×` : '–') : null, waiting: 'metrics',
+    kpi({ target: 'kpi-candidates', label: 'CVEs ranked', value: hasPreds ? fmtInt(o.total_cves) : null, waiting: 'predictions',
+      sub: `${fmtInt(o.top500_count)} shortlisted in the Top 500 · ${o.family_count === null ? 'families not computed yet' : `${fmtInt(o.family_count)} IBM Granite families`}`, prov: 'snapshot' }),
+    kpi({ target: 'kpi-hits500', label: tell ? `Hits@500 · ${tell.model}` : `Hits@500 · ${o.ranking_method}`, value: tell ? String(tell.hits_500) : null, waiting: 'metrics',
+      sub: tell ? `KEV additions caught in the top 500 (validation backtest)${tell.recall_500 === null ? '' : `, recall ${fmtPct(tell.recall_500)}`}` : undefined, prov: 'observed' }),
+    kpi({ target: 'kpi-lift', label: `${o.ranking_method} lift over EPSS at 500`, value: o.lift_over_epss !== null ? `${o.lift_over_epss.toFixed(2)}×` : null, waiting: 'metrics',
       sub: tell ? `${tell.hits_500} vs ${o.epss_hits_500} hits for EPSS alone.${best && best.model !== tell.model ? `\nBest at 500: ${best.model} (${best.hits_500}).` : ''}` : undefined, prov: 'observed' }));
 
   const sc = o.signal_counts;
@@ -71,16 +71,23 @@ function render(o: Overview, d: Distributions): HTMLElement {
   const sigTop = sc ? SIG_KEYS.map((s) => share(sc.top500, s.key, o.top500_count)) : [];
   const pmRaw = d.published_by_month;
   const pm = pmRaw ? { ...pmRaw, share: pmRaw.months.map((_, i) => (pmRaw.all[i] ? (pmRaw.top500[i] / pmRaw.all[i]) * 100 : 0)) } : null;
-  const sh = d.score_hist, eh = d.epss_hist;
+  const rb = d.rank_epss, eh = d.epss_hist;
   const cnt = (c: number | null) => (c === null ? '–' : c);
 
   const charts = h('div', { class: 'grid grid-2' },
-    sh ? chartCard({
-      target: 'chart-score-dist', title: 'Model score distribution', subtitle: 'Top 500 vs all scored CVEs (Tell ensemble score; higher = more likely)', provenance: 'model',
-      summary: histSummary('Model score distribution', sh.all, sh.top500),
-      table: histTable(sh.edges, sh.all, sh.top500),
-      build: (t) => histConfig(t, sh.edges, sh.all, sh.top500, 'Prediction score'),
-    }) : waitingCard('Model score distribution', 'predictions'),
+    rb && rb.length ? chartCard({
+      target: 'chart-rank-epss', title: 'Rank vs EPSS', subtitle: `Median EPSS by rank band (${o.ranking_method})`, provenance: 'snapshot',
+      summary: `Median EPSS by rank band: ${rb.map((x) => `${x.label} ${x.median_epss.toFixed(4)}`).join('; ')}.`,
+      table: { head: ['Rank band', 'CVEs', 'Median EPSS', 'Share with exploit signal'], rows: rb.map((x) => [x.label, x.count, x.median_epss.toFixed(4), x.share_with_signal === null ? '–' : fmtPct(x.share_with_signal)]) },
+      build: (t) => ({
+        type: 'bar' as const,
+        data: { labels: rb.map((x) => x.label), datasets: [{ label: 'Median EPSS', data: rb.map((x) => x.median_epss * 100), backgroundColor: t.top, borderRadius: 3 }] },
+        options: { ...baseOptions(t), plugins: { ...(baseOptions(t).plugins as object), legend: { display: false },
+          tooltip: tip(t, { label: (c: { dataIndex: number; parsed: { y: number | null } }) => ` median EPSS ${(c.parsed.y ?? 0).toFixed(2)}% · ${fmtInt(rb[c.dataIndex].count)} CVEs` }) },
+          scales: { x: axis(t, { grid: { display: false }, title: axisTitle(t, 'Rank band') }),
+            y: axis(t, { type: 'logarithmic', title: axisTitle(t, 'Median EPSS (%, log scale)'), ticks: { color: t.text3, font: { size: 11 }, callback: (v: string | number) => (Number.isInteger(Math.round(Math.log10(Number(v)) * 1e6) / 1e6) ? `${v}%` : '') } }) } },
+      }),
+    }) : waitingCard('Rank vs EPSS', 'predictions'),
     eh ? chartCard({
       target: 'chart-epss-dist', title: 'EPSS distribution', subtitle: 'Top 500 vs all scored CVEs', provenance: 'snapshot',
       summary: histSummary('EPSS distribution', eh.all, eh.top500),
@@ -157,7 +164,7 @@ function render(o: Overview, d: Distributions): HTMLElement {
 
 export function mountOverview(root: HTMLElement): void {
   root.appendChild(h('div', { class: 'hero-wash', 'aria-hidden': 'true' }));
-  root.appendChild(pageHead('Overview', 'Every attack has a tell. Which CVEs on the 2026 scoreboard are most likely to enter CISA KEV, and what the evidence says.'));
+  root.appendChild(pageHead('Overview', 'Every attack has a tell. Which CVEs on the 2026 scoreboard are most likely to enter CISA KEV, ranked by public exploit code then EPSS.'));
   const host = h('div', { class: 'page-host' });
   root.appendChild(host);
   void loadInto(host, () => Promise.all([api.overview(), api.distributions()]), ([o, d]) => render(o, d), skeleton(6, true));

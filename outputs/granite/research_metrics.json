@@ -1,0 +1,347 @@
+{
+  "embedding_metadata": {
+    "model_id": "ibm-granite/granite-embedding-small-english-r2",
+    "embedding_dim": 384,
+    "num_records": 2500,
+    "cache_hit": true,
+    "cache_key": "928a05a63e2e859847d286ee",
+    "cache_path": "C:\\Users\\johnj\\OneDrive\\Documentos\\Datathon 2026\\ThreatRank\\.cache\\granite\\emb_ibm-granite_granite-embedding-small-english-r2_2500_928a05a63e2e859847d286ee.npz",
+    "device": "cpu"
+  },
+  "clustering_metrics": {
+    "n_clusters": 10,
+    "n_records": 2500,
+    "seed": 42,
+    "algorithm": "KMeans",
+    "mean_cosine_cohesion": 0.913,
+    "silhouette_cosine": 0.0804,
+    "per_cluster_cohesion": {
+      "0": 0.928751528263092,
+      "1": 0.9215182065963745,
+      "2": 0.8972276449203491,
+      "3": 0.906271755695343,
+      "4": 0.9017250537872314,
+      "5": 0.9546744227409363,
+      "6": 0.9265183806419373,
+      "7": 0.9126701354980469,
+      "8": 0.9136777520179749,
+      "9": 0.8965885043144226
+    }
+  },
+  "kev_summary": {
+    "historical_available": true,
+    "cutoff_date": "2025-12-31",
+    "historical_n": 2500,
+    "historical_kev_total": 317,
+    "overall_kev_rate": 0.1268,
+    "population_total_cves": 88103,
+    "population_total_kev": 317,
+    "population_base_kev_rate": 0.003598,
+    "horvitz_thompson_non_kev_weight": 40.2135,
+    "temporal_validation_2024_2025": {
+      "train_2024_n": 1181,
+      "train_2024_kev_total": 125,
+      "val_2025_n": 1319,
+      "val_2025_kev_total": 165,
+      "top3_2024_families_out_of_time_2025_kev_share": 0.6424,
+      "top3_2024_families_out_of_time_2025_vol_share": 0.3328,
+      "out_of_time_enrichment_lift": 1.93
+    }
+  },
+  "cluster_details": {
+    "0": {
+      "size": 219,
+      "cohesion": 0.9288,
+      "representative_cves": "CVE-2023-6958, CVE-2024-2280, CVE-2024-3333",
+      "top_characteristics": "cohesion=0.93; terms: Cross-Site Scripting (XSS) (49%), Information Disclosure (9%); top_cwe: CWE-79 (46%); remote=100%/local=0%",
+      "representative_descriptions": [
+        "The WP Recipe Maker plugin for WordPress is vulnerable to Stored Cross-Site Scripting via the plugin's shortcode(s) in all versions up to, and including, 9.1.0 due to insufficient input sanitization and output escaping on user supplied attributes. This makes it possible for authenticated attackers with contributor-level and above permissions to inject arbitrary web scripts in pages that will execute whenever a user accesses an injected page.",
+        "The Better Elementor Addons plugin for WordPress is vulnerable to Stored Cross-Site Scripting via the widget link URL values in all versions up to, and including, 1.4.1 due to insufficient input sanitization and output escaping on user supplied attributes. This makes it possible for authenticated attackers with contributor-level and above permissions to inject arbitrary web scripts in pages that will execute whenever a user accesses an injected page.",
+        "The Essential Addons for Elementor plugin for WordPress is vulnerable to Stored Cross-Site Scripting via the URL attributes of widgets in all versions up to, and including, 5.9.14 due to insufficient input sanitization and output escaping on user supplied attributes. This makes it possible for authenticated attackers, with contributor-level access and above, to inject arbitrary web scripts in pages that will execute whenever a user accesses an injected page."
+      ],
+      "top_cwe": "CWE-79 (46%)"
+    },
+    "1": {
+      "size": 227,
+      "cohesion": 0.9215,
+      "representative_cves": "CVE-2024-6191, CVE-2025-3338, CVE-2025-10102",
+      "top_characteristics": "cohesion=0.92; terms: SQL Injection (58%), Remote Code Execution (4%); top_cwe: CWE-89 (37%); remote=97%/local=2%",
+      "representative_descriptions": [
+        "A vulnerability classified as critical has been found in itsourcecode Student Management System 1.0. This affects an unknown part of the file login.php of the component Login Page. The manipulation of the argument user leads to sql injection. It is possible to initiate the attack remotely. The exploit has been disclosed to the public and may be used. The associated identifier of this vulnerability is VDB-269163.",
+        "A vulnerability classified as critical has been found in codeprojects Online Restaurant Management System 1.0. Affected is an unknown function of the file /admin/user_save.php. The manipulation of the argument Name leads to sql injection. It is possible to launch the attack remotely. The exploit has been disclosed to the public and may be used. Other parameters might be affected as well.",
+        "A security flaw has been discovered in code-projects Online Event Judging System 1.0. This affects an unknown function of the file /index.php. Performing manipulation of the argument Username results in sql injection. The attack is possible to be carried out remotely. The exploit has been released to the public and may be exploited."
+      ],
+      "top_cwe": "CWE-89 (37%)"
+    },
+    "2": {
+      "size": 196,
+      "cohesion": 0.8972,
+      "representative_cves": "CVE-2025-20943, CVE-2025-21008, CVE-2025-43300",
+      "top_characteristics": "cohesion=0.90; terms: Buffer & Memory Corruption (46%), Denial of Service & Crash (18%); top_cwe: CWE-787 (12%); remote=47%/local=52%",
+      "representative_descriptions": [
+        "Out-of-bounds write in secfr trustlet prior to SMR Apr-2025 Release 1 allows local privileged attackers to cause memory corruption.",
+        "Out-of-bounds read in decoding frame header in libsavsvc.so prior to Android 15 allows local attackers to cause memory corruption.",
+        "An out-of-bounds write issue was addressed with improved bounds checking. This issue is fixed in iOS 15.8.5 and iPadOS 15.8.5, iOS 16.7.12 and iPadOS 16.7.12, iOS 18.6.2 and iPadOS 18.6.2, iPadOS 17.7.10, macOS Sequoia 15.6.1, macOS Sonoma 14.7.8, macOS Ventura 13.7.8. Processing a malicious image file may result in memory corruption. Apple is aware of a report that this issue may have been exploited in an extremely sophisticated attack against specific targeted individuals."
+      ],
+      "top_cwe": "CWE-787 (12%)"
+    },
+    "3": {
+      "size": 338,
+      "cohesion": 0.9063,
+      "representative_cves": "CVE-2024-12356, CVE-2024-1654, CVE-2025-24347",
+      "top_characteristics": "cohesion=0.91; terms: Remote Code Execution (19%), Denial of Service & Crash (19%); top_cwe: CWE-78 (13%); remote=89%/local=9%",
+      "representative_descriptions": [
+        "A critical vulnerability has been discovered in Privileged Remote Access (PRA) and Remote Support (RS) products which can allow an unauthenticated attacker to inject commands that are run as a site user.",
+        "This vulnerability potentially allows unauthorized write operations which may lead to remote code execution. An attacker must already have authenticated admin access and knowledge of both an internal system identifier and details of another valid user to exploit this.",
+        "A vulnerability in the \u201cNetwork Interfaces\u201d functionality of the web application of ctrlX OS allows a remote authenticated (low-privileged) attacker to manipulate the network configuration file via a crafted HTTP request."
+      ],
+      "top_cwe": "CWE-78 (13%)"
+    },
+    "4": {
+      "size": 350,
+      "cohesion": 0.9017,
+      "representative_cves": "CVE-2024-55926, CVE-2023-39495, CVE-2025-2743",
+      "top_characteristics": "cohesion=0.90; terms: Remote Code Execution (27%), Path Traversal & File Upload (24%); top_cwe: CWE-22 (14%); remote=73%/local=25%",
+      "representative_descriptions": [
+        "A vulnerability found in Xerox Workplace Suite allows arbitrary file read, upload, and deletion on the server through crafted header manipulation. By exploiting improper validation of headers, attackers can gain unauthorized access to data",
+        "PDF-XChange Editor readFileIntoStream Exposed Dangerous Function Information Disclosure Vulnerability. This vulnerability allows remote attackers to disclose sensitive information on affected installations of PDF-XChange Editor. User interaction is required to exploit this vulnerability in that the target must visit a malicious page or open a malicious file. The specific flaw exists within the readFileIntoStream method. The issue results from the exposure of a dangerous function. An attacker can leverage this vulnerability to disclose information in the context of the current user. Was ZDI-CAN-19657.",
+        "A vulnerability, which was classified as problematic, has been found in zhijiantianya ruoyi-vue-pro 2.4.1. This issue affects some unknown processing of the file /admin-api/mp/material/upload-temporary of the component Material Upload Interface. The manipulation of the argument File leads to path traversal. The attack may be initiated remotely. The exploit has been disclosed to the public and may be used. The vendor was contacted early about this disclosure but did not respond in any way."
+      ],
+      "top_cwe": "CWE-22 (14%)"
+    },
+    "5": {
+      "size": 134,
+      "cohesion": 0.9547,
+      "representative_cves": "CVE-2024-29111, CVE-2025-31762, CVE-2025-23729",
+      "top_characteristics": "cohesion=0.95; terms: Cross-Site Scripting (XSS) (100%), Privilege Escalation (1%); top_cwe: CWE-79 (99%); remote=100%/local=0%",
+      "representative_descriptions": [
+        "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in Webvitaly Sitekit allows Stored XSS.This issue affects Sitekit: from n/a through 1.6.",
+        "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in andreyazimov Sheet2Site sheet2site allows Stored XSS.This issue affects Sheet2Site: from n/a through <= 1.0.18.",
+        "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in fures XTRA Settings xtra-settings allows Reflected XSS.This issue affects XTRA Settings: from n/a through <= 2.1.8."
+      ],
+      "top_cwe": "CWE-79 (99%)"
+    },
+    "6": {
+      "size": 260,
+      "cohesion": 0.9265,
+      "representative_cves": "CVE-2025-40042, CVE-2024-26652, CVE-2022-49335",
+      "top_characteristics": "cohesion=0.93; terms: Denial of Service & Crash (20%), Buffer & Memory Corruption (15%); top_cwe: CWE-476 (14%); remote=2%/local=88%",
+      "representative_descriptions": [
+        "In the Linux kernel, the following vulnerability has been resolved: tracing: Fix race condition in kprobe initialization causing NULL pointer dereference There is a critical race condition in kprobe initialization that can lead to NULL pointer dereference and kernel crash. [1135630.084782] Unable to handle kernel paging request at virtual address 0000710a04630000 ... [1135630.260314] pstate: 404003c9 (nZcv DAIF +PAN -UAO) [1135630.269239] pc : kprobe_perf_func+0x30/0x260 [1135630.277643] lr : kprobe_dispatcher+0x44/0x60 [1135630.286041] sp : ffffaeff4977fa40 [1135630.293441] x29: ffffaeff4977fa40 x28: ffffaf015340e400 [1135630.302837] x27: 0000000000000000 x26: 0000000000000000 [1135630.312257] x25: ffffaf029ed108a8 x24: ffffaf015340e528 [1135630.321705] x23: ffffaeff4977fc50 x22: ffffaeff4977fc50 [1135630.331154] x21: 0000000000000000 x20: ffffaeff4977fc50 [1135630.340586] x19: ffffaf015340e400 x18: 0000000000000000 [1135630.349985] x17: 0000000000000000 x16: 0000000000000000 [1135630.359285] x15: 0000000000000000 x14: 0000000000000000 [1135630.368445] x13: 0000000000000000 x12: 0000000000000000 [1135630.377473] x11: 0000000000000000 x10: 0000000000000000 [1135630.386411] x9 : 0000000000000000 x8 : 0000000000000000 [1135630.395252] x7 : 0000000000000000 x6 : 0000000000000000 [1135630.403963] x5 : 0000000000000000 x4 : 0000000000000000 [1135630.412545] x3 : 0000710a04630000 x2 : 0000000000000006 [1135630.421021] x1 : ffffaeff4977fc50 x0 : 0000710a04630000 [1135630.429410] Call trace: [1135630.434828] kprobe_perf_func+0x30/0x260 [1135630.441661] kprobe_dispatcher+0x44/0x60 [1135630.448396] aggr_pre_handler+0x70/0xc8 [1135630.454959] kprobe_breakpoint_handler+0x140/0x1e0 [1135630.462435] brk_handler+0xbc/0xd8 [1135630.468437] do_debug_exception+0x84/0x138 [1135630.475074] el1_dbg+0x18/0x8c [1135630.480582] security_file_permission+0x0/0xd0 [1135630.487426] vfs_write+0x70/0x1c0 [1135630.493059] ksys_write+0x5c/0xc8 [1135630.498638] __arm64_sys_write+0x24/0x30 [1135630.504821] el0_svc_common+0x78/0x130 [1135630.510838] el0_svc_handler+0x38/0x78 [1135630.516834] el0_svc+0x8/0x1b0 kernel/trace/trace_kprobe.c: 1308 0xffff3df8995039ec <kprobe_perf_func+0x2c>: ldr x21, [x24,#120] include/linux/compiler.h: 294 0xffff3df8995039f0 <kprobe_perf_func+0x30>: ldr x1, [x21,x0] kernel/trace/trace_kprobe.c 1308: head = this_cpu_ptr(call->perf_events); 1309: if (hlist_empty(head)) 1310: return 0; crash> struct trace_event_call -o struct trace_event_call { ... [120] struct hlist_head *perf_events; //(call->perf_event) ... } crash> struct trace_event_call ffffaf015340e528 struct trace_event_call { ... perf_events = 0xffff0ad5fa89f088, //this value is correct, but x21 = 0 ... } Race Condition Analysis: The race occurs between kprobe activation and perf_events initialization: CPU0 CPU1 ==== ==== perf_kprobe_init perf_trace_event_init tp_event->perf_events = list;(1) tp_event->class->reg (2)\u2190 KPROBE ACTIVE Debug exception triggers ... kprobe_dispatcher kprobe_perf_func (tk->tp.flags & TP_FLAG_PROFILE) head = this_cpu_ptr(call->perf_events)(3) (perf_events is still NULL) Problem: 1. CPU0 executes (1) assigning tp_event->perf_events = list 2. CPU0 executes (2) enabling kprobe functionality via class->reg() 3. CPU1 triggers and reaches kprobe_dispatcher 4. CPU1 checks TP_FLAG_PROFILE - condition passes (step 2 completed) 5. CPU1 calls kprobe_perf_func() and crashes at (3) because call->perf_events is still NULL CPU1 sees that kprobe functionality is enabled but does not see that perf_events has been assigned. Add pairing read an ---truncated---",
+        "In the Linux kernel, the following vulnerability has been resolved: net: pds_core: Fix possible double free in error handling path When auxiliary_device_add() returns error and then calls auxiliary_device_uninit(), Callback function pdsc_auxbus_dev_release calls kfree(padev) to free memory. We shouldn't call kfree(padev) again in the error handling path. Fix this by cleaning up the redundant kfree() and putting the error handling back to where the errors happened.",
+        "In the Linux kernel, the following vulnerability has been resolved: drm/amdgpu/cs: make commands with 0 chunks illegal behaviour. Submitting a cs with 0 chunks, causes an oops later, found trying to execute the wrong userspace driver. MESA_LOADER_DRIVER_OVERRIDE=v3d glxinfo [172536.665184] BUG: kernel NULL pointer dereference, address: 00000000000001d8 [172536.665188] #PF: supervisor read access in kernel mode [172536.665189] #PF: error_code(0x0000) - not-present page [172536.665191] PGD 6712a0067 P4D 6712a0067 PUD 5af9ff067 PMD 0 [172536.665195] Oops: 0000 [#1] SMP NOPTI [172536.665197] CPU: 7 PID: 2769838 Comm: glxinfo Tainted: P O 5.10.81 #1-NixOS [172536.665199] Hardware name: To be filled by O.E.M. To be filled by O.E.M./CROSSHAIR V FORMULA-Z, BIOS 2201 03/23/2015 [172536.665272] RIP: 0010:amdgpu_cs_ioctl+0x96/0x1ce0 [amdgpu] [172536.665274] Code: 75 18 00 00 4c 8b b2 88 00 00 00 8b 46 08 48 89 54 24 68 49 89 f7 4c 89 5c 24 60 31 d2 4c 89 74 24 30 85 c0 0f 85 c0 01 00 00 <48> 83 ba d8 01 00 00 00 48 8b b4 24 90 00 00 00 74 16 48 8b 46 10 [172536.665276] RSP: 0018:ffffb47c0e81bbe0 EFLAGS: 00010246 [172536.665277] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000 [172536.665278] RDX: 0000000000000000 RSI: ffffb47c0e81be28 RDI: ffffb47c0e81bd68 [172536.665279] RBP: ffff936524080010 R08: 0000000000000000 R09: ffffb47c0e81be38 [172536.665281] R10: ffff936524080010 R11: ffff936524080000 R12: ffffb47c0e81bc40 [172536.665282] R13: ffffb47c0e81be28 R14: ffff9367bc410000 R15: ffffb47c0e81be28 [172536.665283] FS: 00007fe35e05d740(0000) GS:ffff936c1edc0000(0000) knlGS:0000000000000000 [172536.665284] CS: 0010 DS: 0000 ES: 0000 CR0: 0000000080050033 [172536.665286] CR2: 00000000000001d8 CR3: 0000000532e46000 CR4: 00000000000406e0 [172536.665287] Call Trace: [172536.665322] ? amdgpu_cs_find_mapping+0x110/0x110 [amdgpu] [172536.665332] drm_ioctl_kernel+0xaa/0xf0 [drm] [172536.665338] drm_ioctl+0x201/0x3b0 [drm] [172536.665369] ? amdgpu_cs_find_mapping+0x110/0x110 [amdgpu] [172536.665372] ? selinux_file_ioctl+0x135/0x230 [172536.665399] amdgpu_drm_ioctl+0x49/0x80 [amdgpu] [172536.665403] __x64_sys_ioctl+0x83/0xb0 [172536.665406] do_syscall_64+0x33/0x40 [172536.665409] entry_SYSCALL_64_after_hwframe+0x44/0xa9 Bug: https://gitlab.freedesktop.org/drm/amd/-/issues/2018"
+      ],
+      "top_cwe": "CWE-476 (14%)"
+    },
+    "7": {
+      "size": 201,
+      "cohesion": 0.9127,
+      "representative_cves": "CVE-2024-21338, CVE-2024-30088, CVE-2024-38106",
+      "top_characteristics": "cohesion=0.91; terms: Privilege Escalation (27%), Remote Code Execution (13%); top_cwe: CWE-416 (9%); remote=32%/local=67%",
+      "representative_descriptions": [
+        "Windows Kernel Elevation of Privilege Vulnerability",
+        "Windows Kernel Elevation of Privilege Vulnerability",
+        "Windows Kernel Elevation of Privilege Vulnerability"
+      ],
+      "top_cwe": "CWE-416 (9%)"
+    },
+    "8": {
+      "size": 260,
+      "cohesion": 0.9137,
+      "representative_cves": "CVE-2024-31289, CVE-2025-10557, CVE-2025-62873",
+      "top_characteristics": "cohesion=0.91; terms: Cross-Site Scripting (XSS) (47%), Cross-Site Request Forgery (CSRF) (24%); top_cwe: CWE-79 (43%); remote=97%/local=2%",
+      "representative_descriptions": [
+        "Cross-Site Request Forgery (CSRF) vulnerability in Elementor Hello Elementor.This issue affects Hello Elementor: from n/a through 3.0.0.",
+        "A stored Cross-site Scripting (XSS) vulnerability affecting Issue Management in ENOVIA Collaborative Industry Innovator from Release 3DEXPERIENCE R2022x through Release 3DEXPERIENCE R2025x allows an attacker to execute arbitrary script code in user's browser session.",
+        "Cross-Site Request Forgery (CSRF) vulnerability in Flashyapp WP Flashy Marketing Automation wp-flashy-marketing-automation allows Cross Site Request Forgery.This issue affects WP Flashy Marketing Automation: from n/a through <= 2.0.8."
+      ],
+      "top_cwe": "CWE-79 (43%)"
+    },
+    "9": {
+      "size": 315,
+      "cohesion": 0.8966,
+      "representative_cves": "CVE-2023-46609, CVE-2024-40554, CVE-2025-10019",
+      "top_characteristics": "cohesion=0.90; terms: Auth Bypass & Access Control (33%), Information Disclosure (11%); top_cwe: CWE-862 (19%); remote=80%/local=17%",
+      "representative_descriptions": [
+        "Missing Authorization vulnerability in FeedFocal FeedFocal feedfocal allows Exploiting Incorrectly Configured Access Control Security Levels.This issue affects FeedFocal: from n/a through <= 1.2.2.",
+        "An access control issue in Tmall_demo v2024.07.03 allows attackers to obtain sensitive information.",
+        "Authorization Bypass Through User-Controlled Key vulnerability in codepeople Contact Form Email contact-form-to-email allows Exploiting Incorrectly Configured Access Control Security Levels.This issue affects Contact Form Email: from n/a through <= 1.3.60."
+      ],
+      "top_cwe": "CWE-862 (19%)"
+    }
+  },
+  "cross_cwe_semantic_pairs": [
+    {
+      "family_id": 1,
+      "cosine_similarity": 0.9985,
+      "cve_1": "CVE-2024-21207",
+      "cwe_1": "CWE-400",
+      "desc_1": "Vulnerability in the MySQL Server product of Oracle MySQL (component: InnoDB). Supported versions that are affected are 8.0.38 and prior, 8.4.1 and prior and 9.0.1 and prior. Easil",
+      "cve_2": "CVE-2025-21503",
+      "cwe_2": "CWE-770",
+      "desc_2": "Vulnerability in the MySQL Server product of Oracle MySQL (component: InnoDB). Supported versions that are affected are 8.0.40 and prior, 8.4.3 and prior and 9.1.0 and prior. Easil"
+    },
+    {
+      "family_id": 7,
+      "cosine_similarity": 0.9956,
+      "cve_1": "CVE-2025-53028",
+      "cwe_1": "CWE-284",
+      "desc_1": "Vulnerability in the Oracle VM VirtualBox product of Oracle Virtualization (component: Core). The supported version that is affected is 7.1.10. Easily exploitable vulnerability all",
+      "cve_2": "CVE-2025-53029",
+      "cwe_2": "CWE-269",
+      "desc_2": "Vulnerability in the Oracle VM VirtualBox product of Oracle Virtualization (component: Core). The supported version that is affected is 7.1.10. Easily exploitable vulnerability all"
+    },
+    {
+      "family_id": 3,
+      "cosine_similarity": 0.9925,
+      "cve_1": "CVE-2024-3272",
+      "cwe_1": "CWE-798",
+      "desc_1": "** UNSUPPORTED WHEN ASSIGNED ** A vulnerability, which was classified as very critical, has been found in D-Link DNS-320L, DNS-325, DNS-327L and DNS-340L up to 20240403. This issue",
+      "cve_2": "CVE-2024-3273",
+      "cwe_2": "CWE-77",
+      "desc_2": "** UNSUPPORTED WHEN ASSIGNED ** A vulnerability, which was classified as critical, was found in D-Link DNS-320L, DNS-325, DNS-327L and DNS-340L up to 20240403. Affected is an unkno"
+    },
+    {
+      "family_id": 2,
+      "cosine_similarity": 0.9911,
+      "cve_1": "CVE-2023-48347",
+      "cwe_1": "CWE-125",
+      "desc_1": "In video decoder, there is a possible out of bounds read due to improper input validation. This could lead to local denial of service with no additional execution privileges needed",
+      "cve_2": "CVE-2023-48348",
+      "cwe_2": "CWE-787",
+      "desc_2": "In video decoder, there is a possible out of bounds write due to improper input validation. This could lead to local denial of service with no additional execution privileges neede"
+    },
+    {
+      "family_id": 3,
+      "cosine_similarity": 0.991,
+      "cve_1": "CVE-2024-9380",
+      "cwe_1": "CWE-77;CWE-78",
+      "desc_1": "An OS command injection vulnerability in the admin web console of Ivanti CSA before version 5.0.2 allows a remote authenticated attacker with admin privileges to obtain remote code",
+      "cve_2": "CVE-2024-47908",
+      "cwe_2": "CWE-78",
+      "desc_2": "OS command injection in the admin web console of Ivanti CSA before version 5.0.5 allows a remote authenticated attacker with admin privileges to achieve remote code execution."
+    },
+    {
+      "family_id": 2,
+      "cosine_similarity": 0.9909,
+      "cve_1": "CVE-2025-20738",
+      "cwe_1": "CWE-121;CWE-787",
+      "desc_1": "In wlan AP driver, there is a possible out of bounds write due to an incorrect bounds check. This could lead to local escalation of privilege if a malicious actor has already obtai",
+      "cve_2": "CVE-2025-20742",
+      "cwe_2": "CWE-122;CWE-787",
+      "desc_2": "In wlan AP driver, there is a possible out of bounds write due to an incorrect bounds check. This could lead to remote (proximal/adjacent) escalation of privilege with no additiona"
+    },
+    {
+      "family_id": 4,
+      "cosine_similarity": 0.9895,
+      "cve_1": "CVE-2024-4879",
+      "cwe_1": "CWE-1287",
+      "desc_1": "ServiceNow has addressed an input validation vulnerability that was identified in Vancouver and Washington DC Now Platform releases. This vulnerability could enable an unauthentica",
+      "cve_2": "CVE-2024-8923",
+      "cwe_2": "CWE-94",
+      "desc_2": "ServiceNow has addressed an input validation vulnerability that was identified in the Now Platform. This vulnerability could enable an unauthenticated user to remotely execute code"
+    },
+    {
+      "family_id": 1,
+      "cosine_similarity": 0.9877,
+      "cve_1": "CVE-2025-21497",
+      "cwe_1": "CWE-346",
+      "desc_1": "Vulnerability in the MySQL Server product of Oracle MySQL (component: InnoDB). Supported versions that are affected are 8.0.40 and prior, 8.4.3 and prior and 9.1.0 and prior. Easil",
+      "cve_2": "CVE-2025-21584",
+      "cwe_2": "CWE-732",
+      "desc_2": "Vulnerability in the MySQL Server product of Oracle MySQL (component: Server: DDL). Supported versions that are affected are 8.0.0-8.0.41, 8.4.0-8.4.4 and 9.0.0-9.2.0. Easily explo"
+    },
+    {
+      "family_id": 2,
+      "cosine_similarity": 0.9876,
+      "cve_1": "CVE-2024-0146",
+      "cwe_1": "CWE-120",
+      "desc_1": "NVIDIA vGPU software contains a vulnerability in the Virtual GPU Manager, where a malicious guest could cause memory corruption. A successful exploit of this vulnerability might le",
+      "cve_2": "CVE-2025-23284",
+      "cwe_2": "CWE-121",
+      "desc_2": "NVIDIA vGPU software contains a vulnerability in the Virtual GPU Manager, where a malicious guest could cause a stack buffer overflow. A successful exploit of this vulnerability mi"
+    },
+    {
+      "family_id": 4,
+      "cosine_similarity": 0.9874,
+      "cve_1": "CVE-2024-20953",
+      "cwe_1": "CWE-502",
+      "desc_1": "Vulnerability in the Oracle Agile PLM product of Oracle Supply Chain (component: Export). The supported version that is affected is 9.3.6. Easily exploitable vulnerability allows l",
+      "cve_2": "CVE-2024-21287",
+      "cwe_2": "CWE-863",
+      "desc_2": "Vulnerability in the Oracle Agile PLM Framework product of Oracle Supply Chain (component: Software Development Kit, Process Extension). The supported version that is affected is 9"
+    }
+  ],
+  "baseline_comparison": [
+    {
+      "method": "IBM Granite Embeddings (KMeans)",
+      "num_groups": 10,
+      "non_missing_coverage": 1.0,
+      "peak_group_kev_rate": 0.328358,
+      "peak_group_lift": 2.59,
+      "population_peak_kev_rate": 0.012011,
+      "population_peak_lift": 3.34,
+      "top3_groups_kev_share": 0.6467,
+      "top3_groups_volume_share": 0.3556,
+      "top3_concentration_ratio": 1.82,
+      "population_top3_volume_share": 0.3145,
+      "population_top3_concentration_ratio": 2.06
+    },
+    {
+      "method": "TF-IDF Text Baseline (KMeans)",
+      "num_groups": 10,
+      "non_missing_coverage": 1.0,
+      "peak_group_kev_rate": 0.56,
+      "peak_group_lift": 4.42,
+      "population_peak_kev_rate": 0.030678,
+      "population_peak_lift": 8.53,
+      "top3_groups_kev_share": 0.3691,
+      "top3_groups_volume_share": 0.178,
+      "top3_concentration_ratio": 2.07,
+      "population_top3_volume_share": 0.151,
+      "population_top3_concentration_ratio": 2.44
+    },
+    {
+      "method": "Simple Keyword Rules",
+      "num_groups": 12,
+      "non_missing_coverage": 0.6344,
+      "peak_group_kev_rate": 0.47619,
+      "peak_group_lift": 3.76,
+      "population_peak_kev_rate": 0.022107,
+      "population_peak_lift": 6.14,
+      "top3_groups_kev_share": 0.3849,
+      "top3_groups_volume_share": 0.1628,
+      "top3_concentration_ratio": 2.36,
+      "population_top3_volume_share": 0.1315,
+      "population_top3_concentration_ratio": 2.93
+    },
+    {
+      "method": "Official CWE Top Categories",
+      "num_groups": 10,
+      "non_missing_coverage": 0.9464,
+      "peak_group_kev_rate": 0.368421,
+      "peak_group_lift": 2.91,
+      "population_peak_kev_rate": 0.014299,
+      "population_peak_lift": 3.97,
+      "top3_groups_kev_share": 0.1703,
+      "top3_groups_volume_share": 0.0788,
+      "top3_concentration_ratio": 2.16,
+      "population_top3_volume_share": 0.0659,
+      "population_top3_concentration_ratio": 2.59
+    },
+    {
+      "method": "CVSSv3 Severity \u00d7 Attack Vector",
+      "num_groups": 14,
+      "non_missing_coverage": 0.9688,
+      "peak_group_kev_rate": 0.326034,
+      "peak_group_lift": 2.57,
+      "population_peak_kev_rate": 0.011887,
+      "population_peak_lift": 3.3,
+      "top3_groups_kev_share": 0.877,
+      "top3_groups_volume_share": 0.5116,
+      "top3_concentration_ratio": 1.71,
+      "population_top3_volume_share": 0.46,
+      "population_top3_concentration_ratio": 1.91
+    }
+  ]
+}

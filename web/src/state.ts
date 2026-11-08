@@ -3,11 +3,12 @@ import { SIGNALS, type SignalKey } from './util';
 
 export type Top500Filters = {
   q: string; family_id: string; min_epss: number; signals: SignalKey[];
-  sort: 'rank' | 'epss' | 'score'; offset: number;
+  sort: 'rank' | 'epss'; offset: number;
 };
 export const state = {
   page: 'overview' as PageId,
   selection: null as string | null, // CVE currently open in the drawer / analyst picker
+  chatContext: null as string | null, // e.g. a family the user asked about; sent as chat selection
   top500: { q: '', family_id: '', min_epss: 0, signals: [], sort: 'rank', offset: 0 } as Top500Filters,
 };
 export const bus = new EventTarget();
@@ -30,4 +31,7 @@ export function applyFilter(f: { q?: string; family_id?: string; min_epss?: numb
 export const app = { status: null as Status | null };
 const fileOk = (names: string[]) => !!app.status && app.status.files.some((f) => names.includes(f.name) && f.present && !f.missing_required.length);
 /** True once status is known and no per-CVE family file (families.csv / granite_features.csv) is usable. */
-export const familyWaiting = (): boolean => !!app.status && !fileOk(['families.csv', 'granite_features.csv']);
+export const familyWaiting = (): boolean => !!app.status && !fileOk(['benchmark_2026/families.csv', 'benchmark_2026/granite_features.csv', 'families.csv', 'granite_features.csv']);
+
+/** Open the chat dock and ask `text`, with `context` sent as the chat selection (e.g. a family). */
+export function emitAsk(text: string, context: string): void { emit('chat:ask', { text, context }); }

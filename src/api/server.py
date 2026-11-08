@@ -101,6 +101,7 @@ def _ai_ctx(c: Dict[str, Any]) -> Dict[str, Any]:
     ctx["description"] = c.get("description") or "No description available."
     for k, d in (("family_name", "Unclassified"), ("remote_local", "UNKNOWN"), ("auth_required", "UNKNOWN")):
         ctx[k] = c.get(k) or d
+    # prediction_score stays None when the ranking has no score; src/ai templates omit it.
     return ctx
 
 
@@ -125,6 +126,9 @@ def status():
         "counts": {"cves": int(len(s.df)) if s.has_predictions else None,
                    "top500": int(len(s.top500_df)) if s.has_predictions else None,
                    "families": int(len(s.fam_summary)) if s.fam_summary is not None else None},
+        "has_score": s.has_score,
+        "metrics_source": s.metrics_source,
+        "research": bool(s.research.get("available")),
         "ranking_method": s.ranking_method,
         "data_label": s.label,
         "results_dir": s.results_rel,
@@ -141,6 +145,16 @@ def overview():
 @app.get("/api/metrics")
 def metrics():
     return get_store().metrics_list
+
+
+@app.get("/api/patch-budget")
+def patch_budget():
+    return get_store().patch_budget()
+
+
+@app.get("/api/research")
+def research():
+    return get_store().research
 
 
 @app.get("/api/distributions")

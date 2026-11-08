@@ -1,7 +1,7 @@
 // Threat Galaxy: canvas 2D. All 72k stars are painted into an offscreen bitmap once per
 // (filters, size, zoom-settle); each frame only blits that bitmap rotated, then draws a few hundred
 // twinkles and the hover/selection overlay.
-import { h, fmtEpss, fmtScore, fmtInt, SIGNALS } from '../../util';
+import { h, fmtEpss, fmtInt, SIGNALS } from '../../util';
 import { provenanceTag } from '../../charts';
 import { familyWaiting, state as appState, bus } from '../../state';
 import { openCve } from '../../components/drawer';
@@ -205,7 +205,7 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
     const fam = d.famA[i] >= 0 ? d.families[d.famA[i]].family_name ?? d.families[d.famA[i]].family_id : null;
     tip.replaceChildren(
       h('div', { class: 'gt-top' }, h('b', { class: 'mono' }, d.ids[i]), d.topA[i] ? h('span', { class: 'chip' }, 'Top 500') : null),
-      h('div', { class: 'gt-row num' }, `Rank #${fmtInt(d.rank[i])} · ranking score ${fmtScore(d.scoreA[i])}`),
+      h('div', { class: 'gt-row num' }, `Rank #${fmtInt(d.rank[i])} (${d.ranking_method})`),
       h('div', { class: 'gt-row num' }, `EPSS ${fmtEpss(d.epssA[i])}`),
       h('div', { class: 'gt-row muted' }, `Ranking method: ${d.ranking_method}`),
       h('div', { class: 'gt-row' }, sigs.length ? sigs.join(', ') : 'No public exploit signal'),

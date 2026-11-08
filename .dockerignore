@@ -13,3 +13,4 @@ models/
 docs/
 .claude
 .impeccable
+outputs/granite/mvp_100

@@ -10,7 +10,8 @@ from .store import Store, waiting_text
 
 logger = logging.getLogger("Tell.Explain")
 
-CAVEAT_HIST = "KEV rates are historical observations; 2026 scores are predictions, not confirmed exploitation."
+CAVEAT_HIST = ("Observed (historical), population-weighted. Family rates describe past patterns, not the probability "
+               "for any individual 2026 CVE.")
 _cache = {}  # type: Dict[Any, Dict[str, Any]]
 
 
@@ -33,50 +34,51 @@ def _facts(store: Store, target: str) -> Dict[str, Any]:
     fam = store.families()
     sc = store.signal_counts
     st = store.stats
-    tell = o["tell"]
+    rk = o["ranking"]
+    rm = store.ranking_method
     n_all, n_top = o["total_cves"], o["top500_count"]
 
     if target == "kpi-candidates":
         return dict(
-            title="Candidates scored",
-            shows="How many 2026 CVEs Tell scored and how many it shortlisted.",
-            read="The big number is the full scored pool; the Top 500 is the slice analysts should look at first.",
-            takeaway="%s CVEs were scored across %d families and %d were shortlisted (%s of the pool)."
-                     % (_n(n_all), o["family_count"], n_top, _pct(n_top / n_all, 2)),
+            title="Candidates ranked",
+            shows="How many 2026 CVEs Tell ranked and how many it shortlisted.",
+            read="The big number is the full ranked pool; the Top 500 is the slice analysts should look at first.",
+            takeaway="%s CVEs were ranked across %d Granite families and %d were shortlisted (%s of the pool)."
+                     % (_n(n_all), o["family_count"] or 0, n_top, _pct(n_top / n_all, 2)),
             caveat="The shortlist is a prediction of likely KEV entry, not a list of confirmed exploited CVEs.",
             data=dict(total=n_all, top500=n_top, families=o["family_count"]))
     if target == "kpi-hits500":
         b = o["best_hits_500"]
         return dict(
             title="Hits in the top 500",
-            shows="How many of the historical KEV additions each approach caught in its top 500 (backtest).",
+            shows="How many KEV additions each approach caught in its top 500 (validation backtest).",
             read="A hit is a CVE that really entered KEV and was ranked within the first 500.",
-            takeaway="The Tell ensemble caught %d of about %d positives; the best model, %s, caught %d."
-                     % (tell["hits_500"], o["positives_2025"], b["model"], b["hits_500"]),
-            caveat="With about %d positives, a few hits more or less swing these numbers a lot." % o["positives_2025"],
-            data=dict(tell_hits=tell["hits_500"], best_model=b["model"], best_hits=b["hits_500"],
-                      positives=o["positives_2025"]))
+            takeaway="%s caught %d hits in its top 500 versus %d for EPSS alone; the most hits belong to %s with %d."
+                     % (rm, rk["hits_500"], o["epss_hits_500"], b["model"], b["hits_500"]),
+            caveat="The validation cohort is small, so a few hits more or less swing these numbers a lot.",
+            data=dict(ranking_hits=rk["hits_500"], epss_hits=o["epss_hits_500"], best_model=b["model"],
+                      best_hits=b["hits_500"]))
     if target == "kpi-lift":
-        lift = tell["hits_500"] / max(o["epss_hits_500"], 1)
+        lift = rk["hits_500"] / max(o["epss_hits_500"], 1)
         return dict(
             title="Lift over EPSS",
-            shows="Tell's Hits@500 compared with the EPSS-only baseline.",
-            read="Lift is Tell's hits divided by the EPSS baseline's hits at the same cutoff.",
-            takeaway="Tell found %d hits vs %d for EPSS, about %.2fx as many."
-                     % (tell["hits_500"], o["epss_hits_500"], lift),
-            caveat="The simple exploit+EPSS heuristic still leads Hits@500 with %d, and the sample is small."
-                   % _best(m, "hits_500")["hits_500"],
-            data=dict(tell_hits=tell["hits_500"], epss_hits=o["epss_hits_500"], lift=round(lift, 2)))
-    if target == "chart-score-dist":
+            shows="%s Hits@500 compared with the EPSS-only baseline." % rm,
+            read="Lift is the ranking method's hits divided by the EPSS baseline's hits at the same cutoff.",
+            takeaway="%s found %d hits vs %d for EPSS, about %.2fx as many." % (rm, rk["hits_500"], o["epss_hits_500"], lift),
+            caveat="Hits come from a small validation cohort; treat the ratio as indicative, not precise.",
+            data=dict(ranking_hits=rk["hits_500"], epss_hits=o["epss_hits_500"], lift=round(lift, 2)))
+    if target == "chart-rank-epss":
+        bands = store.distributions["rank_epss"]
+        top, last = bands[0], bands[-1]
         return dict(
-            title="Prediction score distribution",
-            shows="How model scores are spread for all CVEs versus the Top 500 (log-scaled counts).",
-            read="Taller bars mean more CVEs in that score range; the Top 500 should sit in the high-score tail.",
-            takeaway="The median score is %.2f across all CVEs; the Top 500 starts at %.2f and the highest is %.2f."
-                     % (st["score_q_all"][0.5], st["score_min_top500"], st["score_max"]),
-            caveat="Scores are rankings for ordering CVEs, not calibrated probabilities.",
-            data=dict(median_all=round(st["score_q_all"][0.5], 3), min_top500=round(st["score_min_top500"], 3),
-                      max=round(st["score_max"], 3)))
+            title="EPSS by rank band",
+            shows="Median EPSS for groups of ranks, from the Top 100 down to the tail.",
+            read="Each bar is a band of ranks; a falling bar means higher-ranked CVEs tend to have higher EPSS.",
+            takeaway="Median EPSS is %.4f for ranks %s and %.4f for ranks %s."
+                     % (top["median_epss"], top["label"], last["median_epss"], last["label"]),
+            caveat="The ranking is %s, which puts public exploit code first and uses EPSS to order within groups; it is not a calibrated probability." % rm,
+            data=dict(top_band=top["label"], top_median=round(top["median_epss"], 4), last_band=last["label"],
+                      last_median=round(last["median_epss"], 4)))
     if target == "chart-epss-dist":
         return dict(
             title="EPSS distribution",
@@ -114,36 +116,37 @@ def _facts(store: Store, target: str) -> Dict[str, Any]:
     if target == "chart-family-size":
         big, small = max(fam, key=lambda f: f["family_size"]), min(fam, key=lambda f: f["family_size"])
         return dict(
-            title="Family sizes",
-            shows="How many CVEs fall into each exploit family.",
-            read="Longer bars are bigger families; families come from semantic grouping of descriptions.",
+            title="Family sizes (2026)",
+            shows="How many 2026 CVEs fall into each IBM Granite exploit family.",
+            read="Longer bars are bigger families; families come from Granite embeddings of CVE descriptions.",
             takeaway="%s is largest with %s CVEs; %s is smallest with %s."
                      % (big["family_name"], _n(big["family_size"]), small["family_name"], _n(small["family_size"])),
-            caveat="Size is not risk: a big family can have a low KEV rate.",
+            caveat="Size is not risk: a big family can have a low historical KEV rate.",
             data=dict(largest=big["family_name"], largest_size=big["family_size"],
                       smallest=small["family_name"], smallest_size=small["family_size"]))
     if target == "chart-family-kev":
-        hi, lo = max(fam, key=lambda f: f["hist_kev_rate"]), min(fam, key=lambda f: f["hist_kev_rate"])
+        hi = max(fam, key=lambda f: f["population_lift"] or 0)
+        lo = min(fam, key=lambda f: f["population_lift"] if f["population_lift"] is not None else 1e9)
         return dict(
-            title="Historical KEV rate by family",
-            shows="The share of past CVEs in each family that entered CISA KEV.",
-            read="Taller bars mean the family was more often exploited in the past.",
-            takeaway="%s has the highest rate (%s); %s the lowest (%s). %d families are flagged high-risk."
-                     % (hi["family_name"], _pct(hi["hist_kev_rate"]), lo["family_name"], _pct(lo["hist_kev_rate"]),
-                        sum(1 for f in fam if f["high_risk"])),
+            title="Historical population KEV lift by family",
+            shows="How much more (or less) often each family's past CVEs entered CISA KEV than the average CVE, population-weighted.",
+            read="A lift of 1.0x is the average CVE; taller bars mean the family was exploited more often in the past.",
+            takeaway="%s has the highest lift (%.2fx, population KEV rate %s); %s the lowest (%.2fx)."
+                     % (hi["family_name"], hi["population_lift"], _pct(hi["population_kev_rate"], 2),
+                        lo["family_name"], lo["population_lift"]),
             caveat=CAVEAT_HIST,
-            data=dict(highest=hi["family_name"], highest_rate=_pct(hi["hist_kev_rate"]),
-                      lowest=lo["family_name"], lowest_rate=_pct(lo["hist_kev_rate"])))
+            data=dict(highest=hi["family_name"], highest_lift=round(hi["population_lift"], 2),
+                      lowest=lo["family_name"], lowest_lift=round(lo["population_lift"], 2)))
     if target == "chart-family-bubble":
-        hi = max(fam, key=lambda f: f["avg_epss_2026"])
+        hi = max(fam, key=lambda f: f["historical_kev_count"] or 0)
         return dict(
-            title="Family size, KEV rate and EPSS",
-            shows="Each bubble is a family: size by CVE count, plotted by historical KEV rate and average 2026 EPSS.",
-            read="Look top-right for families that were exploited often and still score high on EPSS.",
-            takeaway="%s has the highest average 2026 EPSS (%.4f) with a historical KEV rate of %s."
-                     % (hi["family_name"], hi["avg_epss_2026"], _pct(hi["hist_kev_rate"])),
+            title="Family size, lift and KEV count",
+            shows="Each bubble is a family: 2026 size across, historical population lift up, bubble size and colour by historical KEV count.",
+            read="Look top-right for big families that were also exploited often in the past.",
+            takeaway="%s has the most historical KEVs (%d) with a population lift of %.2fx and %s CVEs in 2026."
+                     % (hi["family_name"], hi["historical_kev_count"], hi["population_lift"], _n(hi["family_size"])),
             caveat=CAVEAT_HIST,
-            data=dict(family=hi["family_name"], avg_epss=hi["avg_epss_2026"], kev_rate=_pct(hi["hist_kev_rate"])))
+            data=dict(family=hi["family_name"], kev_count=hi["historical_kev_count"], lift=round(hi["population_lift"], 2)))
     if target == "chart-hits":
         parts = []
         for k in (100, 250, 500):
@@ -151,55 +154,47 @@ def _facts(store: Store, target: str) -> Dict[str, Any]:
             parts.append("top %d: %s (%d)" % (k, b["model"], b["hits_%d" % k]))
         return dict(
             title="Hits at 100, 250 and 500",
-            shows="Real KEV additions each model caught within its top 100, 250 and 500 (historical backtest).",
+            shows="Real KEV additions each model caught within its top 100, 250 and 500 (validation backtest).",
             read="Taller bars catch more true positives at the same cutoff.",
             takeaway="Leaders by cutoff - " + "; ".join(parts) + ".",
-            caveat="About %d positives only, so differences of a hit or two are noise." % o["positives_2025"],
+            caveat="Small validation cohort, so differences of a hit or two are noise.",
             data=dict(leaders=parts))
-    if target == "chart-precision-recall":
-        b = _best(m, "precision_500")
+    if target == "table-ap":
+        withap = [x for x in m if x.get("average_precision") is not None]
+        if not withap:
+            raise LookupError("metrics")
+        b = _best(withap, "average_precision")
         return dict(
-            title="Precision and recall",
-            shows="Precision (share of the top K that were real) and recall (share of all positives found) at K=100, 250, 500.",
-            read="Precision tends to fall and recall to rise as K grows.",
-            takeaway="At K=500 the best precision is %s and recall %s, from %s."
-                     % (_pct(b["precision_500"]), _pct(b["recall_500"]), b["model"]),
-            caveat="Positives are rare, so precision stays low for every model.",
-            data=dict(model=b["model"], precision_500=b["precision_500"], recall_500=b["recall_500"]))
-    if target == "table-auc":
-        r, p = _best(m, "roc_auc"), _best(m, "pr_auc")
-        return dict(
-            title="AUC table",
-            shows="ROC AUC and PR AUC for each model on the historical backtest.",
-            read="Higher is better; PR AUC matters more when positives are rare.",
-            takeaway="%s has the best ROC AUC (%.3f); %s has the best PR AUC (%.3f). Tell's are %.3f and %.3f."
-                     % (r["model"], r["roc_auc"], p["model"], p["pr_auc"], tell["roc_auc"], tell["pr_auc"]),
-            caveat="AUC and Hits@K can disagree; no single metric tells the whole story here.",
-            data=dict(best_roc=r["model"], best_pr=p["model"], tell_roc=tell["roc_auc"], tell_pr=tell["pr_auc"]))
+            title="Average precision",
+            shows="Average precision (AP) for the models that report it; the rule-based rankings have none.",
+            read="Higher is better; AP rewards putting real KEV additions near the top of the list.",
+            takeaway="%s has the best AP (%.3f) among %d models that report it." % (b["model"], b["average_precision"], len(withap)),
+            caveat="AP is shown only where Member 1 computed it; other rows are not computed.",
+            data=dict(model=b["model"], ap=round(b["average_precision"], 3)))
     if target == "table-top500":
         top = store.df.iloc[0]
         return dict(
             title="Top 500 table",
-            shows="The 500 CVEs ranked most likely to enter KEV.",
+            shows="The 500 CVEs ranked most likely to enter KEV by %s." % rm,
             read="Sort or filter by EPSS, family and exploit signals; click a row for details.",
-            takeaway="Rank 1 is %s with score %.2f; %s of the Top 500 have a public exploit signal."
-                     % (top["cve_id"], top["prediction_score"], _pct(sc["top500"]["any"] / n_top)),
+            takeaway="Rank 1 is %s with EPSS %.4f; %s of the Top 500 have a public exploit signal."
+                     % (top["cve_id"], top["epss"], _pct(sc["top500"]["any"] / n_top)),
             caveat="Rank is a prediction; none of these 2026 CVEs is confirmed in KEV.",
-            data=dict(rank1=top["cve_id"], score=round(float(top["prediction_score"]), 2)))
+            data=dict(rank1=top["cve_id"], epss=round(float(top["epss"]), 4)))
     if target == "panel-cve":
         return dict(
             title="CVE details",
-            shows="Everything known about one CVE: score, rank, EPSS, exploit signals, family and description.",
-            read="Scores and ranks are model output; signals and descriptions are observed data.",
-            takeaway="Scores here range up to %.2f and ranks run from 1 to %s." % (st["score_max"], _n(n_all)),
-            caveat="A high rank is not proof of exploitation.",
-            data=dict(max_score=round(st["score_max"], 2), total=n_all))
+            shows="Everything known about one CVE: rank, EPSS, exploit signals, Granite extraction, family and description.",
+            read="Rank is model output; signals and descriptions are observed data; Granite fields are extracted from the text.",
+            takeaway="Ranks run from 1 to %s." % _n(n_all),
+            caveat="A high rank is not proof of exploitation, and the family rate is a historical pattern, not this CVE's probability.",
+            data=dict(total=n_all))
     if target == "panel-brief":
         return dict(
             title="AI brief",
             shows="A short analyst-style write-up of the selected CVE, generated by an AI model from its data.",
             read="It is labelled with its source; treat it as a draft summary and check it against the fields.",
-            takeaway="The brief only restates the CVE's own data: rank, score, EPSS, signals and family.",
+            takeaway="The brief only restates the CVE's own data: rank, EPSS, signals and family.",
             caveat="AI text can be wrong, so check the grounding report.",
             data={})
     if target == "panel-grounding":
@@ -215,7 +210,7 @@ def _facts(store: Store, target: str) -> Dict[str, Any]:
         sig = sum(1 for x in d["sig"] if x)
         return dict(
             title="Threat Galaxy",
-            shows="Every scored CVE as a star. Colour is its family, size is EPSS, and the closer to the centre, the higher the current ranking method (%s) ranks it." % store.ranking_method,
+            shows="Every ranked CVE as a star. Colour is its Granite family, size is EPSS, and the closer to the centre, the higher the current ranking method (%s) ranks it." % rm,
             read="Bright stars with a glow are the Top 500; twinkling stars have public exploit code. Rings mark the Top 100, 250 and 500 cut-offs.",
             takeaway="%s CVEs are plotted; %d are in the Top 500 and %s (%s) have at least one public exploit signal."
                      % (_n(d["n"]), n_top, _n(sig), _pct(sig / d["n"])),
@@ -232,26 +227,84 @@ def _facts(store: Store, target: str) -> Dict[str, Any]:
             data=dict(total=n_all, top500=n_top, median_epss=round(st["epss_q_all"][0.5], 4)))
     if target == "chart-scatter":
         return dict(
-            title="EPSS versus model score",
-            shows="Each dot is a CVE: EPSS (log scale) across, ranking score up. All Top 500 CVEs plus a fixed 4,000-CVE sample of the rest.",
-            read="Dots high on the chart are ranked high by the current method; dots to the right already have high EPSS.",
-            takeaway="The Top 500 score at least %.2f, while the median score across all CVEs is %.2f."
-                     % (st["score_min_top500"], st["score_q_all"][0.5]),
-            caveat="The sample is for readability only; EPSS is a snapshot signal and the ranking score is not a probability.",
-            data=dict(min_top500=round(st["score_min_top500"], 2), median_all=round(st["score_q_all"][0.5], 2)))
+            title="EPSS versus rank",
+            shows="Each dot is a CVE: EPSS (log scale) across, rank up (rank 1 on top). All Top 500 CVEs plus a fixed 4,000-CVE sample of the rest.",
+            read="Dots high on the chart are ranked high by %s; dots to the right already have high EPSS." % rm,
+            takeaway="The median EPSS of the Top 500 is %.4f against %.4f for all CVEs."
+                     % (st["epss_q_top500"][0.5], st["epss_q_all"][0.5]),
+            caveat="The sample is for readability only; EPSS is a snapshot signal and rank is not a probability.",
+            data=dict(median_top500=round(st["epss_q_top500"][0.5], 4), median_all=round(st["epss_q_all"][0.5], 4)))
     if target == "chart-budget":
+        pb = store.patch_budget()
+        budgets = sorted({r["budget"] for r in pb})
         parts = []
-        for k in (100, 250, 500):
-            b = _best(m, "hits_%d" % k)
-            parts.append("K=%d: %s (%d)" % (k, b["model"], b["hits_%d" % k]))
+        for k in budgets:
+            rows = [r for r in pb if r["budget"] == k and r["hits"] is not None]
+            b = max(rows, key=lambda r: r["hits"])
+            parts.append("K=%d: %s (%d)" % (k, b["model"], b["hits"]))
         return dict(
             title="Patch budget",
-            shows="How many real KEV additions each model catches if a team can only review the top K CVEs (historical backtest). Only budgets 100, 250 and 500 were measured.",
-            read="Lines that climb faster catch more true positives for the same review effort.",
-            takeaway="Leaders by budget - " + "; ".join(parts) + ". Tell ensemble: %d, %d and %d."
-                     % (tell["hits_100"], tell["hits_250"], tell["hits_500"]),
-            caveat="About %d positives only, so differences of a hit or two are noise." % o["positives_2025"],
+            shows="How many real KEV additions each model catches if a team can only review the top K CVEs (validation backtest). Only budgets %s were measured."
+                  % ", ".join(str(int(k)) for k in budgets),
+            read="Taller bars catch more true positives for the same review effort. These are three measured points, not a curve.",
+            takeaway="Leaders by budget - " + "; ".join(parts) + ".",
+            caveat="Small validation cohort, so differences of a hit or two are noise.",
             data=dict(leaders=parts))
+    if target.startswith("research-"):
+        return _research_facts(store, target)
+    raise KeyError(target)
+
+
+def _research_facts(store: Store, target: str) -> Dict[str, Any]:
+    r = store.research
+    cap = r["sample_caption"]
+    if target == "research-concentration":
+        c = r["concentration"]["data"]
+        return dict(
+            title="Where exploitation concentrates",
+            shows="How much of all KEVs the three most-exploited Granite families hold compared with how many CVEs they contain.",
+            read="Compare the two shares: when KEVs share is far above volume share, those families are over-represented.",
+            takeaway="The top three families hold %s of KEVs but only %s of CVE volume, a %.2fx concentration (population-weighted)."
+                     % (_pct(c["kev_share"]), _pct(c["population_volume_share"]), c["population_ratio"]),
+            caveat="Observed (historical), population-weighted. " + cap,
+            data=dict(kev_share=_pct(c["kev_share"]), volume_share=_pct(c["population_volume_share"]),
+                      ratio=round(c["population_ratio"], 2)))
+    if target == "research-temporal":
+        t = r["temporal"]["data"]
+        h = t["headline"]
+        return dict(
+            title="Out-of-time validation",
+            shows="Families ranked on 2024 data only, then checked on 2025 CVEs the ranking never saw.",
+            read="If the 2024 top three still hold a large share of 2025 KEVs, the pattern persisted.",
+            takeaway="The 2024 top three families hold %s of 2025 KEVs with %s of 2025 CVEs, a %.2fx enrichment."
+                     % (_pct(h["kev_share"]), _pct(h["volume_share"]), h["lift"]),
+            caveat="Sample rates from the research cohort: " + cap,
+            data=dict(kev_share=_pct(h["kev_share"]), volume_share=_pct(h["volume_share"]), lift=round(h["lift"], 2)))
+    if target == "research-baselines":
+        rows = r["baselines"]["data"]
+        best = max((x for x in rows if x.get("population_top3_concentration_ratio") is not None),
+                   key=lambda x: x["population_top3_concentration_ratio"])
+        g = next((x for x in rows if "granite" in str(x["method"]).lower()), None)
+        return dict(
+            title="Granite versus simpler groupings",
+            shows="How strongly each grouping method concentrates KEVs in its top three groups, with the share of CVEs each method could place.",
+            read="Higher concentration ratio is better, but check coverage: a method that skips many CVEs looks sharper than it is.",
+            takeaway="%s has the highest ratio (%.2fx); Granite embeddings score %.2fx with %s coverage."
+                     % (best["method"], best["population_top3_concentration_ratio"],
+                        g["population_top3_concentration_ratio"], _pct(g["non_missing_coverage"], 0)) if g else
+                     "%s has the highest ratio (%.2fx)." % (best["method"], best["population_top3_concentration_ratio"]),
+            caveat="Observed (historical), population-weighted. Some baselines do not cover every CVE.",
+            data=dict(best=best["method"], best_ratio=round(best["population_top3_concentration_ratio"], 2)))
+    if target == "research-cwe":
+        rows = r["cwe"]["data"]["rows"]
+        top = rows[0]
+        return dict(
+            title="CWE by family",
+            shows="The twelve most common weakness types (CWE) in the research cohort and how each splits across Granite families.",
+            read="Darker cells mean a larger share of that family's CVEs carry the CWE.",
+            takeaway="%s is the most common CWE (%d cohort CVEs)." % (top["cwe_id"], top["total"]),
+            caveat="Counts come from the 2,500-CVE research cohort, not the 2026 set.",
+            data=dict(top_cwe=top["cwe_id"], count=top["total"]))
     raise KeyError(target)
 
 
@@ -288,9 +341,10 @@ def _rephrase(f: Dict[str, Any]) -> Optional[str]:
     return text
 
 
-_NEEDS = {"kpi-hits500": "metrics", "kpi-lift": "metrics", "chart-hits": "metrics",
-          "chart-precision-recall": "metrics", "table-auc": "metrics", "chart-family-size": "families",
-          "chart-family-kev": "families", "chart-family-bubble": "families", "chart-budget": "metrics"}
+_NEEDS = {"kpi-hits500": "metrics", "kpi-lift": "metrics", "chart-hits": "metrics", "table-ap": "metrics",
+          "chart-family-size": "families", "chart-family-kev": "families", "chart-family-bubble": "families",
+          "chart-budget": "metrics", "research-concentration": "research", "research-temporal": "research",
+          "research-baselines": "research", "research-cwe": "research"}
 
 
 def explain(store: Store, target: str, page: str) -> Optional[Dict[str, Any]]:
@@ -305,7 +359,7 @@ def explain(store: Store, target: str, page: str) -> Optional[Dict[str, Any]]:
     except (LookupError, TypeError, KeyError, ValueError, IndexError, ZeroDivisionError) as e:
         if not isinstance(e, LookupError):
             logger.info("explain %s: data incomplete (%s)", target, type(e).__name__)
-        need = next((d for d in (need, "predictions", "metrics", "families") if not store.available(d)), need)
+        need = next((d for d in (need, "predictions", "metrics", "families", "research") if not store.available(d)), need)
         return {"title": "Not computed yet", "text": waiting_text(need), "source": "offline", "actions": []}
     out = {"title": f["title"], "text": _template(f), "source": "offline", "actions": []}
     if gemini_enabled():

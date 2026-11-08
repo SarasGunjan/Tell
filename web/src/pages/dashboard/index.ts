@@ -1,5 +1,5 @@
 import '../../styles/dashboard.css';
-import { api, type Galaxy, type Metric } from '../../api';
+import { api, type Galaxy, type BudgetPoint } from '../../api';
 import { h, fmtInt, stagger } from '../../util';
 import { bus } from '../../state';
 import { provenanceTag } from '../../charts';
@@ -21,11 +21,11 @@ function galaxyColors(): string[] {
 
 export function mountDashboard(root: HTMLElement): () => void {
   const cleanups: (() => void)[] = [];
-  root.appendChild(pageHead('Dashboard', 'Every CVE on the 2026 scoreboard as a star. Filter, pick a family, and watch every panel follow.'));
+  root.appendChild(pageHead('Dashboard', 'Every CVE on the 2026 scoreboard as a star, grouped into IBM Granite families. Filter, pick a family, and watch every panel follow.'));
   const host = h('div', { class: 'page-host' });
   root.appendChild(host);
 
-  const render = ([g, ms]: [Galaxy, Metric[]]): Node => {
+  const render = ([g, pts]: [Galaxy, BudgetPoint[]]): Node => {
     if (!g.available) return waitingState('predictions', 'Threat Galaxy not computed yet');
     const d = prepare(g);
     const store = createStore(d);
@@ -72,7 +72,7 @@ export function mountDashboard(root: HTMLElement): () => void {
       h('div', { class: 'prov-row' }, provenanceTag('model'), h('span', { class: 'muted' }, 'rank (position)'), provenanceTag('snapshot'), h('span', { class: 'muted' }, 'EPSS and exploit code'), provNote),
       stageWrap, srList);
 
-    const bottom = h('div', { class: 'dash-bottom' }, scatterCard(d, store, colors), budgetCard(ms, store));
+    const bottom = h('div', { class: 'dash-bottom' }, scatterCard(d, store, colors), budgetCard(pts, store, d.ranking_method));
     const layout = h('div', { class: 'dash' },
       h('div', { class: 'dash-galaxy' }, card),
       h('div', { class: 'dash-rail-col' }, filtersRail(d, store, colors)),
@@ -82,6 +82,6 @@ export function mountDashboard(root: HTMLElement): () => void {
     return layout;
   };
 
-  void loadInto(host, () => Promise.all([api.galaxy(), api.metrics().catch(() => [] as Metric[])]), render, skeleton(6, true));
+  void loadInto(host, () => Promise.all([api.galaxy(), api.patchBudget().catch(() => [] as BudgetPoint[])]), render, skeleton(6, true));
   return () => { cleanups.forEach((f) => f()); };
 }

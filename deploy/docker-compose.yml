@@ -13,11 +13,13 @@ services:
     environment:
       THREATRANK_DATA_DIR: /app/data
       TELL_RESULTS_DIR: /app/results
+      TELL_GRANITE_DIR: /app/outputs/granite
       TELL_DATA_LABEL: ${TELL_DATA_LABEL:-demo}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
     volumes:
       # new CSVs dropped here go live via hot reload, no rebuild
       - ../results:/app/results:ro
+      - ../outputs:/app/outputs:ro
       - ../data:/app/data:ro
 
   # Old Streamlit dashboard: docker compose -f deploy/docker-compose.yml --profile streamlit up -d streamlit

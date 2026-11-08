@@ -22,6 +22,8 @@ COPY src/__init__.py /app/src/__init__.py
 COPY src/api/ /app/src/api/
 COPY src/ai/ /app/src/ai/
 COPY results/ /app/results/
+# Member 2 Granite outputs: 2026 benchmark + historical research files (mvp_100 is excluded via .dockerignore)
+COPY outputs/granite/ /app/outputs/granite/
 COPY --from=web /web/dist /app/web/dist
 
 RUN useradd --system --no-create-home --uid 10001 tell \
@@ -29,7 +31,8 @@ RUN useradd --system --no-create-home --uid 10001 tell \
     && chown -R tell /app
 USER tell
 
-ENV PYTHONPATH=/app \
+ENV TELL_GRANITE_DIR=/app/outputs/granite \
+    PYTHONPATH=/app \
     PYTHONUNBUFFERED=1
 
 EXPOSE 8000

@@ -1,0 +1,101 @@
+cve_id,family_id,remote_local,auth_required,vulnerability_type,attack_surface,product_or_vendor,extraction_method,extraction_confidence,evidence
+CVE-1999-0001,3,remote,unknown,Denial of Service (DoS),Network Service / Protocol,unknown,deterministic_rule,medium,text:'remote attackers'
+CVE-1999-0002,1,remote,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,medium,text:'remote attackers'
+CVE-1999-0003,1,unknown,unknown,Memory Corruption & Buffer Overflow,Database / Storage,unknown,deterministic_rule,low,none
+CVE-1999-0004,0,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0005,0,unknown,unknown,Remote Code Execution / Command Injection,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0006,2,remote,no,Memory Corruption & Buffer Overflow,unknown,unknown,structured_cvss+deterministic_rule,high,cvss:attack_vector=NETWORK; cvss:privileges_required=NONE
+CVE-1999-0007,3,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0008,2,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0009,2,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0010,3,unknown,unknown,Denial of Service (DoS),Network Service / Protocol,unknown,deterministic_rule,low,none
+CVE-1999-0011,3,remote,no,Denial of Service (DoS),unknown,unknown,structured_cvss+deterministic_rule,high,cvss:attack_vector=ADJACENT_NETWORK; cvss:privileges_required=NONE
+CVE-1999-0012,3,remote,no,unknown,unknown,unknown,structured_cvss,high,cvss:attack_vector=NETWORK; cvss:privileges_required=NONE
+CVE-1999-0013,4,local,no,unknown,Network Service / Protocol,unknown,structured_cvss,high,cvss:attack_vector=LOCAL; cvss:privileges_required=NONE
+CVE-1999-0014,3,unknown,unknown,Denial of Service (DoS),unknown,unknown,deterministic_rule,low,none
+CVE-1999-0015,3,unknown,unknown,Denial of Service (DoS),unknown,unknown,deterministic_rule,low,none
+CVE-1999-0016,3,unknown,unknown,Denial of Service (DoS),unknown,unknown,deterministic_rule,low,none
+CVE-1999-0017,3,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0018,1,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0019,4,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0021,2,unknown,unknown,Remote Code Execution / Command Injection,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0022,1,local,yes,Memory Corruption & Buffer Overflow,unknown,unknown,structured_cvss+deterministic_rule,high,cvss:attack_vector=LOCAL; cvss:privileges_required=LOW
+CVE-1999-0023,1,local,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,medium,text:'local user'
+CVE-1999-0024,3,unknown,unknown,unknown,Network Service / Protocol,unknown,none,low,none
+CVE-1999-0025,1,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0026,1,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0027,1,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0028,1,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0029,1,local,no,Memory Corruption & Buffer Overflow,unknown,unknown,structured_cvss+deterministic_rule,high,cvss:attack_vector=LOCAL; cvss:privileges_required=NONE
+CVE-1999-0030,1,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0031,3,remote,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'remote attackers'
+CVE-1999-0032,1,local,unknown,Remote Code Execution / Command Injection,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0033,2,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0034,2,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0035,3,remote,yes,unknown,unknown,unknown,structured_cvss,high,cvss:attack_vector=NETWORK; cvss:privileges_required=LOW
+CVE-1999-0036,4,local,no,unknown,unknown,unknown,structured_cvss,high,cvss:attack_vector=LOCAL; cvss:privileges_required=NONE
+CVE-1999-0037,0,unknown,unknown,Remote Code Execution / Command Injection,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0038,1,local,no,Memory Corruption & Buffer Overflow,unknown,unknown,structured_cvss+deterministic_rule,high,cvss:attack_vector=LOCAL; cvss:privileges_required=NONE
+CVE-1999-0039,0,remote,no,unknown,unknown,unknown,structured_cvss,high,cvss:attack_vector=NETWORK; cvss:privileges_required=NONE
+CVE-1999-0040,1,local,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0041,2,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0042,2,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0043,0,remote,no,unknown,OS Kernel / Driver / Local Service,unknown,structured_cvss,high,cvss:attack_vector=NETWORK; cvss:privileges_required=NONE
+CVE-1999-0044,4,local,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0045,4,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0046,2,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0047,0,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0048,4,unknown,unknown,unknown,Network Service / Protocol,unknown,none,low,none
+CVE-1999-0049,4,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0050,2,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0051,4,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0052,3,remote,no,Denial of Service (DoS),unknown,unknown,structured_cvss+deterministic_rule,high,cvss:attack_vector=NETWORK; cvss:privileges_required=NONE
+CVE-1999-0053,3,unknown,unknown,Denial of Service (DoS),Network Service / Protocol,unknown,deterministic_rule,low,none
+CVE-1999-0054,3,unknown,unknown,Denial of Service (DoS),OS Kernel / Driver / Local Service,unknown,deterministic_rule,low,none
+CVE-1999-0055,1,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0056,1,local,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0057,0,remote,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'remote'
+CVE-1999-0058,2,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0059,4,remote,no,unknown,unknown,unknown,structured_cvss,high,cvss:attack_vector=NETWORK; cvss:privileges_required=NONE
+CVE-1999-0060,3,unknown,unknown,Denial of Service (DoS),unknown,unknown,deterministic_rule,low,none
+CVE-1999-0061,4,remote,unknown,unknown,OS Kernel / Driver / Local Service,unknown,deterministic_rule,medium,text:'remote'
+CVE-1999-0062,4,local,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'local user'
+CVE-1999-0063,3,unknown,unknown,unknown,Network Service / Protocol,unknown,none,low,none
+CVE-1999-0064,1,local,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0065,0,remote,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'remote attacker'
+CVE-1999-0066,4,remote,no,unknown,unknown,unknown,structured_cvss,high,cvss:attack_vector=NETWORK; cvss:privileges_required=NONE
+CVE-1999-0067,0,remote,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'remote'
+CVE-1999-0068,0,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0069,2,local,no,Memory Corruption & Buffer Overflow,unknown,unknown,structured_cvss+deterministic_rule,high,cvss:attack_vector=LOCAL; cvss:privileges_required=NONE
+CVE-1999-0070,0,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0071,2,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0072,1,local,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0073,3,remote,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'remote'
+CVE-1999-0074,3,unknown,unknown,unknown,Network Service / Protocol,unknown,none,low,none
+CVE-1999-0075,4,unknown,unknown,unknown,OS Kernel / Driver / Local Service,unknown,none,low,none
+CVE-1999-0076,2,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0077,3,unknown,unknown,unknown,Network Service / Protocol,unknown,none,low,none
+CVE-1999-0078,4,local,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0079,3,remote,unknown,Denial of Service (DoS),unknown,unknown,deterministic_rule,medium,text:'remote attackers'
+CVE-1999-0080,4,remote,yes,unknown,unknown,unknown,deterministic_rule,medium,text:'remote'; text:'authenticated users'
+CVE-1999-0081,4,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0082,4,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0083,4,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0084,4,local,no,unknown,unknown,unknown,structured_cvss,high,cvss:attack_vector=LOCAL; cvss:privileges_required=NONE
+CVE-1999-0085,2,remote,unknown,Remote Code Execution / Command Injection,Network Service / Protocol,unknown,deterministic_rule,medium,text:'remote attackers'
+CVE-1999-0086,4,remote,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'remote'
+CVE-1999-0087,3,unknown,unknown,Denial of Service (DoS),unknown,unknown,deterministic_rule,low,none
+CVE-1999-0088,4,remote,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'remote'
+CVE-1999-0089,1,local,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0090,1,local,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0091,1,local,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0092,1,local,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0093,4,local,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0094,4,local,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'local users'
+CVE-1999-0095,0,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0096,0,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0097,0,unknown,unknown,unknown,unknown,unknown,none,low,none
+CVE-1999-0098,0,remote,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,medium,text:'remote attacker'
+CVE-1999-0099,1,unknown,unknown,Memory Corruption & Buffer Overflow,unknown,unknown,deterministic_rule,low,none
+CVE-1999-0100,4,remote,unknown,unknown,unknown,unknown,deterministic_rule,medium,text:'remote'
+CVE-1999-0101,2,unknown,unknown,Memory Corruption & Buffer Overflow,Network Service / Protocol,unknown,deterministic_rule,low,none

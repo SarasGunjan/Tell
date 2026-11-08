@@ -1,31 +1,38 @@
 // Client for the contract in docs/WEB_PLATFORM.md. Types mirror the backend; no mock data.
 
 export type CVE = {
-  cve_id: string; rank: number; prediction_score: number; epss: number;
+  cve_id: string; rank: number; prediction_score: number | null; epss: number;
   exploitdb: 0 | 1; metasploit: 0 | 1; nuclei: 0 | 1; poc_github: 0 | 1;
   published: string; snapshot_month: string; in_top500: boolean;
   family_id: string | null; family_name: string | null;
-  remote_local: string | null; auth_required: string | null; attack_type: string | null;
+  remote_local: string | null; auth_required: string | null; vulnerability_type: string | null;
+  // detail only (not in list payloads): IBM Granite extraction (Member 2)
+  attack_surface?: string | null; product_or_vendor?: string | null; extraction_method?: string | null;
+  extraction_confidence?: string | null; evidence?: string | null; extraction_source?: string | null;
   description: string | null; cvss3_score: number | null; attack_vector: string | null; cwe_ids: string | null;
 };
 // null = column not supplied yet (shown as "not computed yet", never as 0)
 export type Family = {
-  family_id: string; family_name: string; family_size: number; hist_kev_rate: number | null;
-  avg_epss_2026: number | null; high_risk: boolean | null; key_traits: string | null;
+  family_id: string; family_name: string; family_size: number; historical_kev_count: number | null;
+  sample_kev_rate: number | null; population_kev_rate: number | null; population_lift: number | null; sample_lift: number | null;
+  ci_95_low: number | null; ci_95_high: number | null; representative_cves: string[]; top_characteristics: string | null;
+  high_risk: boolean | null; in_top500: number | null; scored_count: number | null; caveat: string | null; rate_basis: string;
 };
+export type Breakdown = { label: string; count: number; share: number };
 export type Metric = {
   model: string;
   hits_100: number; precision_100: number | null; recall_100: number | null;
   hits_250: number; precision_250: number | null; recall_250: number | null;
   hits_500: number; precision_500: number | null; recall_500: number | null;
-  roc_auc: number | null; pr_auc: number | null;
+  roc_auc: number | null; pr_auc: number | null; average_precision: number | null;
 };
+export type BudgetPoint = { model: string; budget: number; hits: number; derived: boolean };
 export type GroundingCheck = { item: string; status: string; detail: string };
 export type Grounding = {
   target_cve: string; grounding_score: number; status_label: string;
   checks: GroundingCheck[]; hallucinations: string[]; is_grounded: boolean;
 };
-export type PageId = 'dashboard' | 'overview' | 'top500' | 'families' | 'models' | 'analyst';
+export type PageId = 'dashboard' | 'overview' | 'top500' | 'families' | 'research' | 'models' | 'analyst';
 export type Action =
   | { type: 'navigate'; page: PageId }
   | { type: 'open_cve'; cve_id: string }
@@ -43,28 +50,52 @@ export type GalaxyFamily = { family_id: string; family_name: string | null; high
 export type Galaxy =
   | { available: false; waiting: string }
   | {
-      available: true; n: number; ids: string[]; rank: number[]; score: number[]; epss: number[];
+      available: true; n: number; ids: string[]; rank: number[]; score?: number[]; epss: number[];
       fam: number[]; sig: number[]; top500: number[]; families: GalaxyFamily[]; signals_available: string[];
       ranking_method: string; x?: (number | null)[]; y?: (number | null)[];
     };
 export type Status = {
   gemini: boolean; snowflake: boolean; descriptions: boolean; model: string;
   counts: { cves: number | null; top500: number | null; families: number | null };
-  ranking_method: string; data_label: 'demo' | 'final'; results_dir: string; top500_source: 'file' | 'derived' | null; files: StatusFile[];
+  ranking_method: string; has_score: boolean; data_label: 'demo' | 'final'; results_dir: string; top500_source: 'file' | 'derived' | null; files: StatusFile[];
 };
 export type Overview = {
-  total_cves: number | null; top500_count: number | null; family_count: number | null; positives_2025: number | null;
-  best_hits_500: Metric | null; epss_hits_500: number | null; tell: Metric | null;
+  total_cves: number | null; top500_count: number | null; family_count: number | null;
+  best_hits_500: Metric | null; epss_hits_500: number | null; ranking: Metric | null; lift_over_epss: number | null;
+  ranking_method: string; has_score: boolean;
   signal_counts: { all: SignalCounts; top500: SignalCounts } | null;
 };
 type Hist = { edges: number[]; all: number[]; top500: number[] };
 export type Distributions = {
-  score_hist: Hist | null; epss_hist: Hist | null;
+  score_hist: Hist | null;
+  rank_epss: { label: string; from: number; to: number; count: number; median_epss: number; mean_epss: number; share_with_signal: number | null }[] | null;
+  epss_hist: Hist | null;
   published_by_month: { months: string[]; all: number[]; top500: number[] } | null;
   remote_local: { label: string; count: number }[];
   auth_required: { label: string; count: number }[];
 };
-export type FamilyDetail = { family: Family; top_cves: CVE[]; in_top500: number | null; signal_counts: SignalCounts | null };
+export type FamilyDetail = {
+  family: Family; top_cves: CVE[]; in_top500: number | null; signal_counts: SignalCounts | null;
+  attack_surface: Breakdown[]; vulnerability_type: Breakdown[]; historical_examples: string[]; historical_examples_label: string;
+  historical_family_name: string | null; representative_2026: string[]; representative_2026_label: string; caveat: string | null;
+};
+type RBlock<T> = { data: T; provenance: string; cohort_label: string; note?: string } | null;
+export type Headline = {
+  top3_family_ids: string[]; top3_family_names: (string | null)[]; ranked_by: string; kev_share: number; volume_share: number; lift: number;
+  val_kev_top3: number; val_kev_total: number; val_n_top3: number; val_n_total: number; matches_reported: boolean | null;
+};
+export type TemporalRow = { family_id: string; family_name: string | null; train_2024_n: number; train_2024_kev: number; train_2024_rate: number; train_2024_lift: number; val_2025_n: number; val_2025_kev: number; val_2025_rate: number; val_2025_lift: number };
+export type Research =
+  | { available: false; waiting: string }
+  | {
+      available: true; cohort_label: string; sample_caption: string; caveats: string[];
+      cohort: { label: string; n: number | null; kev_total: number | null; sample_base_rate: number | null; population_total_cves: number | null; population_base_rate: number | null; years: number[] | null; n_clusters: number | null; mean_cosine_cohesion: number | null; silhouette_cosine: number | null; embedding_model: string | null };
+      families: RBlock<Family[]>;
+      concentration: RBlock<{ method: string; kev_share: number; population_volume_share: number; population_ratio: number; peak_population_lift: number | null }>;
+      baselines: RBlock<{ method: string; non_missing_coverage: number | null; population_top3_concentration_ratio: number | null; population_top3_volume_share: number | null; top3_groups_kev_share: number | null }[]>;
+      temporal: RBlock<{ rows: TemporalRow[]; headline: Headline | null; train_year: number | null; val_year: number | null }>;
+      cwe: RBlock<{ families: string[]; rows: { cwe_id: string; cwe_name: string | null; total: number; cells: Record<string, { count: number; share: number | null }> }[]; unassigned: number }>;
+    };
 export type CveList = { total: number; items: CVE[] };
 export type AiSource = 'gemini' | 'offline' | string;
 export type BriefResult = { source: AiSource; model: string; content: string; grounding: Grounding };
@@ -108,7 +139,7 @@ function cached<T>(path: string): Promise<T> {
 
 export type CveQuery = {
   q?: string; family_id?: string; min_epss?: number; signals?: string[];
-  scope?: 'top500' | 'all'; sort?: 'rank' | 'epss' | 'score'; limit?: number; offset?: number;
+  scope?: 'top500' | 'all'; sort?: 'rank' | 'epss'; limit?: number; offset?: number;
 };
 export function cveQueryString(q: CveQuery): string {
   const p = new URLSearchParams();
@@ -130,6 +161,8 @@ export const api = {
   metrics: () => cached<Metric[]>('/api/metrics'),
   distributions: () => cached<Distributions>('/api/distributions'),
   families: () => cached<Family[]>('/api/families'),
+  patchBudget: () => cached<BudgetPoint[]>('/api/patch-budget'),
+  research: () => cached<Research>('/api/research'),
   family: (id: string) => cached<FamilyDetail>(`/api/families/${encodeURIComponent(id)}`),
   cves: (q: CveQuery, signal?: AbortSignal) => req<CveList>(`/api/cves?${cveQueryString(q)}`, undefined, signal),
   cve: (id: string) => cached<CVE>(`/api/cves/${encodeURIComponent(id)}`),

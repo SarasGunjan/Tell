@@ -87,9 +87,11 @@ export type SignalKey = (typeof SIGNALS)[number]['key'];
 export const TARGET_PAGE: Record<string, import('./api').PageId> = {
   'chart-galaxy': 'dashboard', 'dash-kpis': 'dashboard', 'chart-scatter': 'dashboard', 'chart-budget': 'dashboard',
   'kpi-candidates': 'overview', 'kpi-hits500': 'overview', 'kpi-lift': 'overview',
-  'chart-score-dist': 'overview', 'chart-epss-dist': 'overview', 'chart-signals': 'overview', 'chart-published': 'overview',
+  'chart-rank-epss': 'overview', 'chart-epss-dist': 'overview', 'chart-signals': 'overview', 'chart-published': 'overview',
   'chart-family-size': 'families', 'chart-family-kev': 'families', 'chart-family-bubble': 'families',
-  'chart-hits': 'models', 'chart-precision-recall': 'models', 'table-auc': 'models',
+  'chart-hits': 'models', 'table-ap': 'models',
+  'research-concentration': 'research', 'research-temporal': 'research', 'research-baselines': 'research', 'research-cwe': 'research',
   'table-top500': 'top500',
   'panel-cve': 'analyst', 'panel-brief': 'analyst', 'panel-grounding': 'analyst',
 };
+

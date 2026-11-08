@@ -1,0 +1,5 @@
+model,hits_100,hits_250,hits_500,average_precision
+EPSS,4,8,8,
+Public Code + EPSS,8,15,18,
+Logistic Regression,7,14,16,0.04453946624150483
+LightGBM,8,10,16,0.027676309645320113

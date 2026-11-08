@@ -1,6 +1,6 @@
 // Dashboard side panels and bottom charts. Every one re-renders from the shared store.
 import type { Chart } from 'chart.js';
-import type { Metric } from '../../api';
+import type { BudgetPoint } from '../../api';
 import { h, fmtEpss, fmtInt, fmtPct, reducedMotion, SIGNALS, type SignalKey } from '../../util';
 import { chartCard, baseOptions, axis, axisTitle, tip, pointerOnHover, provenanceTag, alpha, type Registered, type Theme } from '../../charts';
 import { explainButton } from '../../components/explain';
@@ -195,7 +195,7 @@ export function selectionPanel(d: GalaxyData, store: Store, colors: string[]): H
 export function scatterCard(d: GalaxyData, store: Store, colors: string[]): HTMLElement {
   const sample = scatterSample(d, 4000);
   const ix = sample.idx;
-  const pts = Array.from(ix, (i) => ({ x: d.epssA[i], y: d.scoreA[i] }));
+  const pts = Array.from(ix, (i) => ({ x: d.epssA[i], y: d.rank[i] }));
   const pos = new Map<string, number>();
   ix.forEach((i, p) => pos.set(d.ids[i], p));
   let minE = 1;
@@ -214,10 +214,10 @@ export function scatterCard(d: GalaxyData, store: Store, colors: string[]): HTML
   let reg: Registered | null = null;
   const lbl = (c: { dataIndex: number }) => d.ids[ix[c.dataIndex]];
   const card = chartCard({
-    target: 'chart-scatter', title: 'EPSS vs ranking score', subtitle: 'All Top 500 + 4,000 sampled (fixed by CVE id hash). Hover a dot to find it in the galaxy.', provenance: 'mixed', height: 300,
-    summary: `Scatter of EPSS (observed snapshot signal, log scale) against ranking score (current ranking method, not a probability) for ${fmtInt(ix.length)} CVEs: every Top 500 CVE with EPSS above zero and a fixed sample of 4,000 others.${sample.zeroEpssTop ? ` ${sample.zeroEpssTop} Top 500 CVEs with EPSS of 0 cannot be shown on a log axis.` : ''}`,
-    table: { head: ['CVE', 'EPSS', 'Ranking score', 'Rank'], rows: Array.from(ix.slice(-30).reverse(), (i) => [d.ids[i], fmtEpss(d.epssA[i]), d.scoreA[i].toFixed(3), d.rank[i]]) },
-    extra: h('div', { class: 'scatter-key' }, provenanceTag('snapshot'), h('span', { class: 'muted' }, 'x: EPSS'), provenanceTag('model'), h('span', { class: 'muted' }, 'y: ranking score')),
+    target: 'chart-scatter', title: 'EPSS vs rank', subtitle: 'All Top 500 + 4,000 sampled (fixed by CVE id hash). Hover a dot to find it in the galaxy.', provenance: 'mixed', height: 300,
+    summary: `Scatter of EPSS (observed snapshot signal, log scale) against rank (${d.ranking_method}, not a probability; rank 1 at the top) for ${fmtInt(ix.length)} CVEs: every Top 500 CVE with EPSS above zero and a fixed sample of 4,000 others.${sample.zeroEpssTop ? ` ${sample.zeroEpssTop} Top 500 CVEs with EPSS of 0 cannot be shown on a log axis.` : ''}`,
+    table: { head: ['CVE', 'EPSS', 'Rank'], rows: Array.from(ix.slice(-30).reverse(), (i) => [d.ids[i], fmtEpss(d.epssA[i]), d.rank[i]]) },
+    extra: h('div', { class: 'scatter-key' }, provenanceTag('snapshot'), h('span', { class: 'muted' }, 'x: EPSS'), provenanceTag('model'), h('span', { class: 'muted' }, `y: rank (${d.ranking_method})`)),
     build: (t) => {
       const s = style();
       return {
@@ -227,10 +227,10 @@ export function scatterCard(d: GalaxyData, store: Store, colors: string[]): HTML
           onHover: (e: { native?: Event | null }, els: { index: number }[]) => { pointerOnHover(e, els); store.set({ hoverId: els[0] ? d.ids[ix[els[0].index]] : null }); },
           onClick: (_e: unknown, els: { index: number }[]) => { if (els[0]) openCve(d.ids[ix[els[0].index]]); },
           plugins: { ...(baseOptions(t).plugins as object), legend: { display: false },
-            tooltip: tip(t, { title: (it: { dataIndex: number }[]) => lbl(it[0]), label: (c: { dataIndex: number }) => { const i = ix[c.dataIndex]; return [` EPSS ${fmtEpss(d.epssA[i])}`, ` Score ${d.scoreA[i].toFixed(3)} · rank #${fmtInt(d.rank[i])}`]; } }, 'Click to open') },
+            tooltip: tip(t, { title: (it: { dataIndex: number }[]) => lbl(it[0]), label: (c: { dataIndex: number }) => { const i = ix[c.dataIndex]; return [` EPSS ${fmtEpss(d.epssA[i])}`, ` Rank #${fmtInt(d.rank[i])} (${d.ranking_method})`]; } }, 'Click to open') },
           scales: {
             x: axis(t, { type: 'logarithmic', min: xMin, max: 1, title: axisTitle(t, 'EPSS (log scale)'), ticks: { color: t.text3, font: { size: 10 }, callback: (v: string | number) => (Number.isInteger(Math.round(Math.log10(Number(v)) * 1e6) / 1e6) ? fmtEpss(Number(v)) : '') } }),
-            y: axis(t, { title: axisTitle(t, 'Ranking score'), ticks: { color: t.text3, font: { size: 10 } } }),
+            y: axis(t, { type: 'logarithmic', reverse: true, min: 1, title: axisTitle(t, `Rank (${d.ranking_method}), log scale, #1 on top`), ticks: { color: t.text3, font: { size: 10 }, callback: (v: string | number) => (Number.isInteger(Math.round(Math.log10(Number(v)) * 1e6) / 1e6) ? fmtInt(Number(v)) : '') } }),
           } },
       };
     },
@@ -261,30 +261,34 @@ export function scatterCard(d: GalaxyData, store: Store, colors: string[]): HTML
 }
 
 // ------------------------------------------------------------------ patch budget
-export function budgetCard(ms: Metric[], store: Store): HTMLElement {
-  if (!ms.length) return waitingCard('Patch budget', 'metrics');
-  const isTell = (m: Metric) => /tell/i.test(m.model);
-  const KS = [100, 250, 500] as const;
-  const colorOf = (t: Theme, m: Metric) => (isTell(m) ? t.top : t.palette[ms.filter((x) => !isTell(x)).indexOf(m) % t.palette.length]);
+export function budgetCard(pts: BudgetPoint[], store: Store, method: string): HTMLElement {
+  if (!pts.length) return waitingCard('Patch budget', 'Waiting on Member 1\'s patch_budget.csv');
+  const models = [...new Set(pts.map((p) => p.model))];
+  const budgets = [...new Set(pts.map((p) => p.budget))].sort((a, b) => a - b); // measured points only, never a curve
+  const isRank = (m: string) => m.toLowerCase() === method.toLowerCase();
+  const hitsOf = (m: string, k: number) => pts.find((p) => p.model === m && p.budget === k)?.hits ?? null;
+  const idx = (m: string) => models.filter((x) => !isRank(x)).indexOf(m);
+  const colorOf = (t: Theme, m: string) => (isRank(m) ? t.top : t.palette[idx(m) % t.palette.length]);
+  const derived = pts.some((p) => p.derived);
   let reg: Registered | null = null;
-  const chips = ms.map((m) => h('button', { type: 'button', class: 'chip chip-toggle', 'aria-pressed': 'false', onClick: () => store.set({ highlightModel: store.state.highlightModel === m.model ? null : m.model }) },
-    h('i', { class: 'swatch', style: `background:var(${isTell(m) ? '--data-top' : ['--data-a', '--data-b', '--data-c', '--data-d', '--data-f', '--data-h'][ms.filter((x) => !isTell(x)).indexOf(m) % 6]})`, 'aria-hidden': 'true' }), m.model));
+  const chips = models.map((m) => h('button', { type: 'button', class: 'chip chip-toggle', 'aria-pressed': 'false', onClick: () => store.set({ highlightModel: store.state.highlightModel === m ? null : m }) },
+    h('i', { class: 'swatch', style: `background:var(${isRank(m) ? '--data-top' : ['--data-a', '--data-b', '--data-c', '--data-d', '--data-f', '--data-h'][idx(m) % 6]})`, 'aria-hidden': 'true' }), m));
   const hl = () => store.state.highlightModel;
-  const barStyle = (t: Theme, m: Metric) => { // discrete grouped bars: 3 measured budgets, nothing interpolated
-    const on = hl() === m.model, focus = hl() !== null, emph = focus ? on : isTell(m);
+  const barStyle = (t: Theme, m: string) => {
+    const on = hl() === m, focus = hl() !== null, emph = focus ? on : isRank(m);
     const c = colorOf(t, m);
     return { backgroundColor: emph ? c : alpha(c, focus ? 0.25 : 0.55), borderColor: emph ? c : 'transparent', borderWidth: emph ? 1.5 : 0 };
   };
   const card = chartCard({
-    target: 'chart-budget', title: 'Patch budget', subtitle: 'KEV additions caught if a team can review only K CVEs (historical backtest). Measured at 3 budgets only.', provenance: 'observed', height: 300,
-    summary: `Hits at 100, 250 and 500 reviewed CVEs for ${ms.length} models, measured at those three budgets only. ${ms.filter(isTell).map((m) => `${m.model}: ${m.hits_100}, ${m.hits_250}, ${m.hits_500}.`).join(' ')}`,
-    table: { head: ['Model', 'Hits@100', 'Hits@250', 'Hits@500'], rows: ms.map((m) => [m.model, m.hits_100, m.hits_250, m.hits_500]) },
+    target: 'chart-budget', title: 'Patch budget', subtitle: `KEV additions caught if a team can review only K CVEs (validation backtest). Measured at ${budgets.length} budgets only${derived ? ' (derived from model metrics)' : ''}.`, provenance: 'observed', height: 300,
+    summary: `Hits at ${budgets.join(', ')} reviewed CVEs for ${models.length} models, measured at those budgets only. ${models.filter(isRank).map((m) => `${m}: ${budgets.map((k) => hitsOf(m, k)).join(', ')}.`).join(' ')}`,
+    table: { head: ['Model', ...budgets.map((k) => `Hits@${k}`)], rows: models.map((m) => [m, ...budgets.map((k) => hitsOf(m, k) ?? '–')]) },
     extra: h('div', { class: 'chips budget-chips', role: 'group', 'aria-label': 'Highlight a model' }, chips),
     build: (t) => ({
       type: 'bar' as const,
-      data: { labels: KS.map(String), datasets: ms.map((m) => ({ label: m.model, data: KS.map((k) => m[`hits_${k}` as 'hits_100']), borderRadius: 2, ...barStyle(t, m) })) },
+      data: { labels: budgets.map(String), datasets: models.map((m) => ({ label: m, data: budgets.map((k) => hitsOf(m, k)), borderRadius: 2, ...barStyle(t, m) })) },
       options: { ...baseOptions(t), interaction: { mode: 'nearest' as const, intersect: true },
-        onClick: (_e: unknown, els: { datasetIndex: number }[]) => { if (els[0]) { const m = ms[els[0].datasetIndex].model; store.set({ highlightModel: hl() === m ? null : m }); } },
+        onClick: (_e: unknown, els: { datasetIndex: number }[]) => { if (els[0]) { const m = models[els[0].datasetIndex]; store.set({ highlightModel: hl() === m ? null : m }); } },
         onHover: pointerOnHover,
         plugins: { ...(baseOptions(t).plugins as object), legend: { display: false }, tooltip: tip(t, { title: (it: { dataset: { label?: string } }[]) => it[0].dataset.label ?? '', label: (c: { parsed: { y: number | null }; label: string }) => ` ${c.parsed.y} hits in the top ${c.label}` }, 'Click to highlight this model') },
         scales: {
@@ -295,12 +299,12 @@ export function budgetCard(ms: Metric[], store: Store): HTMLElement {
     onReady: (r) => { reg = r; },
   });
   const paint = raf(() => {
-    chips.forEach((b, i) => b.setAttribute('aria-pressed', String(hl() === ms[i].model)));
+    chips.forEach((b, i) => b.setAttribute('aria-pressed', String(hl() === models[i])));
     const c = reg?.chart; if (!c) return;
     const cs = getComputedStyle(document.documentElement);
     const pal = ['--data-a', '--data-b', '--data-c', '--data-d', '--data-f', '--data-h'].map((v) => cs.getPropertyValue(v).trim());
     const t = { top: cs.getPropertyValue('--data-top').trim(), palette: pal } as Theme;
-    ms.forEach((m, i) => Object.assign(c.data.datasets[i], barStyle(t, m)));
+    models.forEach((m, i) => Object.assign(c.data.datasets[i], barStyle(t, m)));
     c.update(reducedMotion() ? 'none' : undefined);
   });
   store.subscribe((_s, ch) => { if (ch.has('highlightModel')) paint(); });

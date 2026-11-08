@@ -1,0 +1,6 @@
+family_id,family_name,family_size,historical_kev_count,historical_kev_rate,representative_cves,top_characteristics
+0,Buffer & Memory Corruption,15,0,0.0,"CVE-1999-0095, CVE-1999-0037, CVE-1999-0098",cohesion=0.92; terms: Buffer & Memory Corruption (27%); top_cwe: CWE-78 (13%); remote=40%/local=0%
+1,Buffer & Memory Corruption (Local / Host),23,0,0.0,"CVE-1999-0090, CVE-1999-0040, CVE-1999-0091","cohesion=0.95; terms: Buffer & Memory Corruption (91%), Remote Code Execution (4%); top_cwe: CWE-119 (9%); remote=4%/local=57%"
+2,Buffer & Memory Corruption [CWE-125],16,0,0.0,"CVE-1999-0085, CVE-1999-0008, CVE-1999-0058","cohesion=0.93; terms: Buffer & Memory Corruption (100%), Remote Code Execution (6%); top_cwe: CWE-125 (6%); remote=12%/local=6%"
+3,Denial of Service & Crash,22,0,0.0,"CVE-1999-0010, CVE-1999-0052, CVE-1999-0053",cohesion=0.91; terms: Denial of Service & Crash (55%); top_cwe: CWE-20 (5%); remote=36%/local=0%
+4,Mixed Logic & Access Control Weaknesses,24,0,0.0,"CVE-1999-0062, CVE-1999-0086, CVE-1999-0044",cohesion=0.90; terms: Path Traversal & File Upload (8%); top_cwe: CWE-522 (4%); remote=29%/local=33%

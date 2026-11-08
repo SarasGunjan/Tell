@@ -16,7 +16,7 @@ export function runActions(actions: Action[]): void {
   }
 }
 
-const PAGE_LABEL: Record<string, string> = { dashboard: 'Dashboard', overview: 'Overview', top500: 'Top 500', families: 'Families', models: 'Model Evaluation', analyst: 'AI Analyst' };
+const PAGE_LABEL: Record<string, string> = { dashboard: 'Dashboard', overview: 'Overview', top500: 'Top 500', families: 'Families', research: 'Research', models: 'Model Evaluation', analyst: 'AI Analyst' };
 
 export function describeAction(a: Action): string | null {
   switch (a.type) {

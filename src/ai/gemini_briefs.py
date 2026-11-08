@@ -73,7 +73,8 @@ class GeminiBriefGenerator:
         cve_id = ctx.get("cve_id", "CVE-2026-XXXX")
         rank = ctx.get("rank", 1)
         epss = ctx.get("epss", 0.0)
-        score = ctx.get("prediction_score", 0.0)
+        score = ctx.get("prediction_score")
+        score_str = f" | **Score:** `{score:.4f}`" if isinstance(score, (int, float)) else ""
         family = ctx.get("family_name", "Remote Code Execution")
         remote_local = ctx.get("remote_local", "REMOTE")
         auth = ctx.get("auth_required", "NONE")
@@ -87,12 +88,12 @@ class GeminiBriefGenerator:
         exploit_str = ", ".join(exploit_signals) if exploit_signals else "No public exploit code cataloged"
 
         brief = f"""### Executive Vulnerability Brief: {cve_id}
-**Tell Risk Rank:** #{rank} of 72,670 | **Score:** `{score:.4f}` | **EPSS:** `{epss:.4f}`
+**Tell Rank:** #{rank} of 72,670{score_str} | **EPSS:** `{epss:.4f}`
 
 #### Executive Summary
-{cve_id} has been identified as a critical priority candidate in the 2026 cohort. Classified under the **{family}** archetype, this flaw demonstrates severe exploitation readiness driven by active weaponization signals ({exploit_str}).
+{cve_id} is ranked #{rank} on the 2026 scoreboard. It belongs to the **{family}** family. Recorded public exploit signals: {exploit_str}.
 
-#### Attack Surface & Prerequisites (IBM Granite Analysis)
+#### Attack Surface & Prerequisites (IBM Granite family data)
 - **Exposure:** `{remote_local}` access vector
 - **Authentication:** `{auth}` credentials required for trigger
 - **Vulnerability Archetype:** `{family}`
@@ -100,7 +101,7 @@ class GeminiBriefGenerator:
 
 #### Exploit Intelligence & Threat Landscape
 - **Weaponization State:** {exploit_str}
-- **Historical Analogy:** In the 2024–2025 backtests, vulnerabilities exhibiting this combination of pre-auth network access and public scanner templates reached CISA KEV at a rate 15x to 35x higher than general CVEs.
+- **Caveat:** A rank reflects recorded signals at the snapshot, not a calibrated probability or confirmed exploitation.
 
 #### Immediate Defensive Actions
 1. **Perimeter Audit:** Query attack surface management systems to detect external internet exposure.

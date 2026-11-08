@@ -15,27 +15,32 @@ from .store import SIGNALS, Store, waiting_text
 
 logger = logging.getLogger("Tell.Chat")
 
-PAGES = ["overview", "top500", "families", "models", "analyst"]
+PAGES = ["dashboard", "overview", "top500", "families", "research", "models", "analyst"]
 HIGHLIGHT_TARGETS = [
-    "kpi-candidates", "kpi-hits500", "kpi-lift", "chart-score-dist", "chart-epss-dist",
+    "kpi-candidates", "kpi-hits500", "kpi-lift", "chart-rank-epss", "chart-epss-dist",
     "chart-signals", "chart-published", "chart-family-size", "chart-family-kev",
-    "chart-family-bubble", "chart-hits", "chart-precision-recall", "table-auc",
+    "chart-family-bubble", "chart-hits", "table-ap",
     "table-top500", "panel-cve", "panel-brief", "panel-grounding",
     "chart-galaxy", "dash-kpis", "chart-scatter", "chart-budget",
+    "research-concentration", "research-temporal", "research-baselines", "research-cwe",
 ]
 CVE_RE = re.compile(r"CVE-\d{4}-\d{4,7}", re.IGNORECASE)
 GEMINI_TIMEOUT = 12
 MAX_ROUNDS = 4
 
 SYSTEM_PROMPT = (
-    "You are Tell's friendly security-analyst assistant (tagline: Every attack has a tell). Tell ranks 2026 CVEs by the "
-    "predicted likelihood of entering CISA's KEV catalog. Answer ONLY from tool results; call tools "
-    "to get data instead of guessing. Cite CVE IDs you mention. NEVER state or imply that a 2026 CVE "
-    "is already in KEV: ranks and scores are predictions, not confirmed exploitation. Acknowledge "
-    "uncertainty (e.g. the historical backtest has only a few dozen positives). If the tools cannot answer, "
-    "say so. If a tool says data is not computed yet, tell the user which member/file it is waiting on and "
-    "never guess numbers. Be concise and friendly; use short Markdown. UI tools (navigate, highlight, open_cve, "
-    "filter_top500) may be called to show the user things on screen."
+    "You are Tell's friendly security-analyst assistant (tagline: Every attack has a tell). Tell ranks 2026 CVEs with a "
+    "transparent public-code-then-EPSS ranking (not a calibrated probability) to surface those most likely to enter "
+    "CISA's KEV catalog. Answer ONLY from tool results; call tools to get data instead of guessing. Cite CVE IDs you "
+    "mention. NEVER state or imply that a 2026 CVE is already in KEV: ranks are predictions, not confirmed exploitation. "
+    "Families come from IBM Granite embeddings (Member 2). Family KEV rates and lifts are historical, "
+    "population-weighted observations about a family, never the probability for one CVE; the 2,500-CVE research cohort "
+    "is separate from the 2026 benchmark and must not be mixed with it. Sample KEV rates are inflated by sampling: "
+    "prefer population_kev_rate. If you discuss Family 8, say it mixes web XSS/CSRF with browser-engine zero-days. "
+    "Patch budget has three measured points (100, 250, 500), not a curve. Acknowledge that the validation cohort is "
+    "small. If the tools cannot answer, say so. If a tool says data is not computed yet, tell the user which "
+    "member/file it is waiting on and never guess numbers. Be concise and friendly; use short Markdown. UI tools "
+    "(navigate, highlight, open_cve, filter_top500) may be called to show the user things on screen."
 )
 
 
@@ -50,7 +55,7 @@ _S = {"type": "STRING"}
 _SIG = {"type": "ARRAY", "items": {"type": "STRING", "enum": SIGNALS}}
 FILTER_PROPS = {
     "q": {"type": "STRING", "description": "text matched against CVE id or description"},
-    "family_id": {"type": "STRING", "description": "e.g. FAM-01"},
+    "family_id": {"type": "STRING", "description": "Granite family id, 0 to 9"},
     "min_epss": {"type": "NUMBER"},
     "signals": _SIG,
 }
@@ -58,15 +63,16 @@ TOOLS = [
     {"name": "search_cves", "description": "Search/filter CVEs (max 10 returned).",
      "parameters": _obj(dict(FILTER_PROPS, **{
          "scope": {"type": "STRING", "enum": ["top500", "all"]},
-         "sort": {"type": "STRING", "enum": ["rank", "epss", "score"]},
+         "sort": {"type": "STRING", "enum": ["rank", "epss"]},
          "limit": {"type": "INTEGER"}}))},
     {"name": "get_cve", "description": "Full record for one CVE.",
      "parameters": _obj({"cve_id": _S}, ["cve_id"])},
-    {"name": "list_families", "description": "All exploit families with historical KEV rate."},
-    {"name": "get_family", "description": "One family with its top CVEs.",
+    {"name": "list_families", "description": "All Granite exploit families: 2026 size, historical population KEV rate and lift."},
+    {"name": "get_family", "description": "One family with its top CVEs, attack-surface breakdown, and caveat if any.",
      "parameters": _obj({"family_id": _S}, ["family_id"])},
-    {"name": "get_metrics", "description": "Model evaluation metrics (historical backtest; metrics.csv does not state the year)."},
+    {"name": "get_metrics", "description": "Model evaluation: hits at 100/250/500, average precision where computed, and the measured patch-budget points."},
     {"name": "get_distributions", "description": "Summary of score/EPSS/signal/month distributions."},
+    {"name": "get_research", "description": "Research Discoveries from the historical cohort: concentration, out-of-time validation, baselines, top CWEs."},
     {"name": "navigate", "description": "Switch the UI page.",
      "parameters": _obj({"page": {"type": "STRING", "enum": PAGES}}, ["page"])},
     {"name": "highlight", "description": "Highlight a chart/element in the UI.",
@@ -77,8 +83,8 @@ TOOLS = [
      "parameters": _obj(FILTER_PROPS)},
 ]
 
-COMPACT = ["cve_id", "rank", "prediction_score", "epss", "exploitdb", "metasploit", "nuclei",
-           "poc_github", "published", "family_name", "in_top500"]
+COMPACT = ["cve_id", "rank", "epss", "exploitdb", "metasploit", "nuclei",
+           "poc_github", "published", "family_name", "vulnerability_type", "in_top500"]
 
 
 def _compact(c: Dict[str, Any]) -> Dict[str, Any]:
@@ -118,6 +124,7 @@ class ToolRunner:
         args = args or {}
         need = {"search_cves": "predictions", "get_cve": "predictions", "get_distributions": "predictions",
                 "list_families": "families", "get_family": "families", "get_metrics": "metrics",
+                "get_research": "research",
                 "open_cve": "predictions"}.get(name)
         if need and not s.available(need):
             return {"unavailable": waiting_text(need)}
@@ -128,7 +135,7 @@ class ToolRunner:
                     q=args.get("q"), family_id=args.get("family_id"), min_epss=args.get("min_epss"),
                     signals=[x for x in args.get("signals") or [] if x in SIGNALS],
                     scope=args.get("scope") if args.get("scope") in ("top500", "all") else "top500",
-                    sort=args.get("sort") if args.get("sort") in ("rank", "epss", "score") else "rank",
+                    sort=args.get("sort") if args.get("sort") in ("rank", "epss") else "rank",
                     limit=limit)
                 self.touch([i["cve_id"] for i in items])
                 return {"total": total, "items": [_compact(i) for i in items]}
@@ -138,9 +145,13 @@ class ToolRunner:
                     return {"error": "CVE not found in the 2026 scored set"}
                 self.touch([c["cve_id"]])
                 c["description"] = (c.get("description") or "")[:600] or None
+                c["family_note"] = "Family rates are historical patterns, not this CVE's probability."
                 return c
             if name == "list_families":
-                return {"families": s.families()}
+                keys = ("family_id", "family_name", "family_size", "historical_kev_count", "population_kev_rate",
+                        "population_lift", "in_top500", "caveat")
+                return {"families": [{k: f.get(k) for k in keys} for f in s.families()],
+                        "basis": "Observed (historical), population-weighted"}
             if name == "get_family":
                 d = s.family_detail(str(args.get("family_id", "")))
                 if not d:
@@ -149,13 +160,16 @@ class ToolRunner:
                 d["top_cves"] = [_compact(c) for c in d["top_cves"][:5]]
                 return d
             if name == "get_metrics":
-                return {"metrics": s.metrics_list, "positives_2025": s.overview()["positives_2025"]}  # null = not computed yet
+                return {"ranking_method": s.ranking_method, "metrics": s.metrics_list, "patch_budget": s.patch_budget(),
+                        "note": "Patch budget has three measured points; validation cohort is small."}
             if name == "get_distributions":
                 d = s.distributions
                 return {"stats": {k: v for k, v in s.stats.items()},
                         "signal_counts": s.signal_counts,
                         "published_by_month": d["published_by_month"],
                         "remote_local": d["remote_local"], "auth_required": d["auth_required"]}
+            if name == "get_research":
+                return research_summary(s)
             if name == "navigate":
                 if args.get("page") in PAGES:
                     self.actions.append({"type": "navigate", "page": args["page"]})
@@ -187,6 +201,27 @@ class ToolRunner:
             logger.warning("tool %s failed (%s)", name, type(e).__name__)
             return {"error": "tool failed"}
         return {"error": "unknown tool"}
+
+
+def research_summary(s: Store) -> Dict[str, Any]:
+    """Compact, grounded facts for the Research page (tool + offline router)."""
+    r = s.research
+    out = {"cohort": r["cohort"]["label"], "sample_caption": r["sample_caption"],
+           "caveats": r["caveats"]}  # type: Dict[str, Any]
+    if r.get("concentration"):
+        out["concentration"] = r["concentration"]["data"]
+    if r.get("temporal"):
+        out["temporal_headline"] = r["temporal"]["data"]["headline"]
+    if r.get("baselines"):
+        out["baselines"] = [{k: b.get(k) for k in ("method", "non_missing_coverage",
+                                                   "population_top3_concentration_ratio")}
+                            for b in r["baselines"]["data"]]
+    if r.get("cwe"):
+        out["top_cwes"] = [{"cwe_id": x["cwe_id"], "cve_count": x["total"]} for x in r["cwe"]["data"]["rows"][:5]]
+    if r.get("families"):
+        out["families_population_lift"] = [{"family_id": f["family_id"], "family_name": f["family_name"],
+                                            "population_lift": f["population_lift"]} for f in r["families"]["data"]]
+    return out
 
 
 def _finish(store: Store, engine: EvidenceGroundingEngine, runner: ToolRunner, reply: str,
@@ -243,17 +278,20 @@ def _gemini_chat(store, engine, messages, page, selection) -> Optional[Dict[str,
 HELP = (
     "I'm running offline (no AI key), so I can answer a few kinds of questions from the data:\n\n"
     "- **A CVE**, e.g. `CVE-2025-14558`\n"
-    "- **An exploit family**, e.g. `SQL injection` or `FAM-01`\n"
+    "- **An exploit family**, e.g. `SQL injection` or `family 7`\n"
     "- **Top CVEs**, e.g. `top 5 riskiest`\n"
     "- **Exploit signals**, e.g. `metasploit` or `nuclei`\n"
-    "- **Models**, e.g. `which model has the best hits and precision?`\n"
+    "- **Models**, e.g. `which model has the most hits?`\n"
+    "- **Research findings**, e.g. `what did the research discover?`\n"
     "- **Overview**, e.g. `how many CVEs are there?`"
 )
 
 
 METRICS_RE = re.compile(
-    r"\b(models?|hits?|precision|recall|accuracy|auc|baseline|ensemble|lightgbm|backtest|heuristic|"
+    r"\b(models?|hits?|precision|recall|accuracy|auc|baseline|ensemble|lightgbm|logistic|backtest|heuristic|budget|"
     r"compare[sd]?|comparison|vs|versus|better|outperforms?|outperformed)\b")
+RESEARCH_RE = re.compile(r"\b(research|discover\w*|findings?|concentrat\w*|out[- ]of[- ]time|temporal|validation)\b")
+FAMILY_NUM_RE = re.compile(r"\bfamily\s*#?\s*(\d{1,2})\b")
 EPSS_RE = re.compile(r"\bepss\b")
 RANK_RE = re.compile(r"\b(top|highest|riskiest|most|worst|lowest)\b")
 
@@ -261,21 +299,22 @@ RANK_RE = re.compile(r"\b(top|highest|riskiest|most|worst|lowest)\b")
 def _fmt_cve(c: Dict[str, Any]) -> str:
     sig = [k for k in SIGNALS if c.get(k)]
     fam = ", family: %s" % c["family_name"] if c.get("family_name") else ""
-    return "**%s** - rank #%s, score %.2f, EPSS %.4f, signals: %s%s" % (
-        c["cve_id"], c["rank"], c["prediction_score"], c["epss"], ", ".join(sig) if sig else "none", fam)
+    return "**%s** - rank #%s, EPSS %.4f, signals: %s%s" % (
+        c["cve_id"], c["rank"], c["epss"], ", ".join(sig) if sig else "none", fam)
 
 
 def _family_aliases(store: Store) -> List[Any]:
-    extra = {"FAM-01": ["rce", "command injection"], "FAM-09": ["dos"], "FAM-07": ["sqli", "sql"],
-             "FAM-02": ["auth bypass", "session hijacking"], "FAM-04": ["file upload"],
-             "FAM-06": ["use after free", "buffer overflow"], "FAM-10": ["info leak"]}
+    extra = {"rce": "Remote Code Execution", "sqli": "SQL Injection", "xss": "Cross-Site Scripting",
+             "dos": "Denial of Service", "csrf": "Cross-Site Request Forgery", "auth bypass": "Auth Bypass",
+             "privesc": "Privilege Escalation", "file upload": "File Upload", "buffer overflow": "Buffer"}
     out = []
     for f in store.families():
-        names = {f["family_id"].lower(), f["family_name"].lower()}
-        base = re.sub(r"\(.*?\)", "", f["family_name"]).lower()
-        names.update(p.strip() for p in base.split("&"))
+        nm = f["family_name"].lower()
+        names = {nm}
+        base = re.sub(r"[\(\[].*?[\)\]]", "", nm)
+        names.update(p.strip() for p in re.split(r"&", base))
         names.update(m.lower() for m in re.findall(r"\(([A-Za-z ]+)\)", f["family_name"]))
-        names.update(extra.get(f["family_id"], []))
+        names.update(k for k, v in extra.items() if v.lower() in nm)
         out.append((f["family_id"], sorted((n for n in names if len(n) >= 3), key=len, reverse=True)))
     return out
 
@@ -291,7 +330,10 @@ def _offline_chat(store, engine, messages, page, selection) -> Dict[str, Any]:
         if m.upper() not in ids:
             ids.append(m.upper())
     fam_id = None
-    for fid, names in (_family_aliases(store) if store.available("families") else []):
+    mnum = FAMILY_NUM_RE.search(low)
+    if mnum and store.available("families") and store.family(mnum.group(1)):
+        fam_id = mnum.group(1)
+    for fid, names in ([] if fam_id else (_family_aliases(store) if store.available("families") else [])):
         if any(re.search(r"(?<![a-z])%s(?![a-z])" % re.escape(n), low) for n in names):
             fam_id = fid
             break
@@ -315,18 +357,40 @@ def _offline_chat(store, engine, messages, page, selection) -> Dict[str, Any]:
     elif fam_id:
         d = r.run("get_family", {"family_id": fam_id})
         f = d["family"]
-        parts = ["%s CVEs" % "{:,}".format(f["family_size"])]
-        if f.get("hist_kev_rate") is not None:
-            parts.append("historical KEV rate %.1f%%" % (f["hist_kev_rate"] * 100))
-        if f.get("avg_epss_2026") is not None:
-            parts.append("avg 2026 EPSS %.4f" % f["avg_epss_2026"])
+        parts = ["%s CVEs in 2026" % "{:,}".format(f["family_size"])]
+        if f.get("population_kev_rate") is not None:
+            parts.append("historical population KEV rate %.2f%% (%.2fx lift)" % (
+                f["population_kev_rate"] * 100, f["population_lift"]))
         if d.get("in_top500") is not None:
             parts.append("%d in the Top 500" % d["in_top500"])
-        lines.append("**%s** (%s): %s." % (f["family_name"], fam_id, ", ".join(parts)))
-        lines.append("_The KEV rate is a historical observation; 2026 scores are predictions._")
+        lines.append("**%s** (family %s): %s." % (f["family_name"], fam_id, ", ".join(parts)))
+        lines.append("_Observed (historical), population-weighted. This is a family pattern, not the probability "
+                     "for any 2026 CVE._")
+        if d.get("caveat"):
+            lines.append("> Caveat: " + d["caveat"])
         lines += ["- " + _fmt_cve(c) for c in d["top_cves"][:3]]
         r.run("navigate", {"page": "families"})
         r.run("highlight", {"target": "chart-family-kev"})
+    elif RESEARCH_RE.search(low) and not store.available("research"):
+        lines.append(waiting_text("research"))
+    elif RESEARCH_RE.search(low):
+        rs = r.run("get_research", {})
+        h = rs.get("temporal_headline")
+        c = rs.get("concentration")
+        if c:
+            lines.append("In the %s, the three most-exploited Granite families hold **%.1f%%** of KEVs but only "
+                         "**%.1f%%** of CVE volume (population-weighted, %.2fx concentration)."
+                         % (rs["cohort"], c["kev_share"] * 100, c["population_volume_share"] * 100,
+                            c["population_ratio"]))
+        if h:
+            lines.append("Out of time: the 2024 top-3 families (%s) held **%.1f%%** of 2025 KEVs with **%.1f%%** of 2025 "
+                         "CVEs, a **%.2fx** enrichment." % (", ".join(h["top3_family_ids"]), h["kev_share"] * 100,
+                                                            h["volume_share"] * 100, h["lift"]))
+        if not lines:
+            lines.append("The research files are present but contain no headline results yet.")
+        lines.append("_Historical patterns, not predictions for any 2026 CVE. " + rs["sample_caption"] + "_")
+        r.run("navigate", {"page": "research"})
+        r.run("highlight", {"target": "research-concentration"})
     elif METRICS_RE.search(low) or (EPSS_RE.search(low) and not RANK_RE.search(low)):
         got = r.run("get_metrics", {})
         if "unavailable" in got:
@@ -334,19 +398,19 @@ def _offline_chat(store, engine, messages, page, selection) -> Dict[str, Any]:
         else:
             m = got["metrics"]
             best = max(m, key=lambda x: x["hits_500"])
-            tell = [x for x in m if "Tell" in x["model"]]
-            epss = [x for x in m if "EPSS" in x["model"]]
-            pos = got["positives_2025"]
-            txt = "In the historical backtest%s, **%s** led Hits@500 with %d" % (
-                " (%d positives)" % pos if pos else "", best["model"], best["hits_500"])
-            if tell:
-                txt += "; the Tell ensemble got %d" % tell[0]["hits_500"]
-                if tell[0].get("roc_auc") is not None:
-                    txt += " (ROC AUC %.3f)" % tell[0]["roc_auc"]
+            rank_m = [x for x in m if x["model"].lower() == got["ranking_method"].lower()]
+            epss = [x for x in m if x["model"].strip().lower() == "epss"]
+            txt = "In the validation backtest, **%s** led Hits@500 with %d" % (best["model"], best["hits_500"])
+            if rank_m and rank_m[0]["model"] != best["model"]:
+                txt += "; %s got %d" % (rank_m[0]["model"], rank_m[0]["hits_500"])
             if epss:
                 txt += " vs. %d for the EPSS baseline" % epss[0]["hits_500"]
             lines.append(txt + ".")
-            lines.append("_Few positives means these numbers are noisy._")
+            ap = [x for x in m if x.get("average_precision") is not None]
+            if ap:
+                lines.append("Average precision: " + ", ".join("%s %.3f" % (x["model"], x["average_precision"])
+                                                                for x in ap) + " (not computed for the others).")
+            lines.append("_The validation cohort is small, so these numbers are noisy. Patch budget has three measured points._")
         r.run("navigate", {"page": "models"})
         r.run("highlight", {"target": "chart-hits"})
     elif (sigs or re.search(r"\b(top|highest|riskiest|most likely|worst|best)\b", low)) \

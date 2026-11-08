@@ -1,5 +1,5 @@
 import { api, type CVE } from '../api';
-import { h, clear, debounce, fmtEpss, fmtScore } from '../util';
+import { h, clear, debounce, fmtEpss } from '../util';
 import { state, emit } from '../state';
 import { aiPanel } from '../components/ai';
 import { cveFacts, signalChips, skeleton, errorState, emptyState, cveMiniCard } from '../components/ui';
@@ -74,7 +74,7 @@ export function mountAnalyst(root: HTMLElement): () => void {
 function cveCard(c: CVE): HTMLElement {
   return h('section', { class: 'card', 'data-explain': 'panel-cve', 'aria-label': `${c.cve_id} summary` },
     h('div', { class: 'card-head' },
-      h('div', {}, h('h2', { class: 'card-title mono' }, c.cve_id), h('div', { class: 'prov-row' }, provenanceTag('model'), `Rank #${c.rank} · score ${fmtScore(c.prediction_score)}`, provenanceTag('snapshot'), `EPSS ${fmtEpss(c.epss)}`)),
+      h('div', {}, h('h2', { class: 'card-title mono' }, c.cve_id), h('div', { class: 'prov-row' }, provenanceTag('model'), `Rank #${c.rank}`, provenanceTag('snapshot'), `EPSS ${fmtEpss(c.epss)}`)),
       h('div', { class: 'card-tools' }, explainButton('panel-cve', 'CVE summary'))),
     signalChips(c), cveFacts(c),
     c.description ? h('p', { class: 'desc' }, c.description) : h('p', { class: 'muted' }, 'No description available in the loaded data.'));

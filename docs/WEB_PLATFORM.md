@@ -3,6 +3,25 @@
 **Tell** — *Every attack has a tell.* Member 3 deliverable (full-stack, APIs, deployment).
 Chart.js web frontend + thin read-only FastAPI layer. Replaces nothing: the Streamlit app keeps working.
 
+## Final data contract (supersedes the older integration table below where they differ)
+
+Config: `TELL_RESULTS_DIR` (Member 1, default `results/`), `TELL_GRANITE_DIR` (Member 2, default `outputs/granite`). Hot reload covers both.
+
+| File | Owner | Used for |
+|---|---|---|
+| `results/predictions.csv` | Member 1 | `cve_id, rank, epss` + signals, `published`, `snapshot_month`, `ranking_method` (`public_code_then_epss` is shown as "Public Code + EPSS"). `prediction_score` is optional; **absent = null everywhere, never fabricated**. |
+| `results/model_metrics.csv` (first in alias order, before `metrics.csv`) | Member 1 | `model, hits_100/250/500`, optional `average_precision` (+ old precision/recall/roc/pr columns if ever present) |
+| `results/patch_budget.csv` | Member 1 | `/api/patch-budget` `[{model,budget,hits,derived}]`; three measured budgets, never a curve. Missing: derived from model_metrics hits and flagged `derived:true` |
+| `results/top500.csv` | Member 1 | `cve_id` only; 500 rows |
+| `outputs/granite/benchmark_2026/{families,granite_features,family_summary}.csv` | Member 2 | the 10 Granite families for the 72,670 2026 CVEs (preferred over any `results/` family file). `family_id` is exposed as a string ("0".."9"). |
+| `outputs/granite/{family_summary,baseline_comparison,temporal_validation_2024_2025,cwe_semantic_analysis}.csv`, `research_metrics.json` | Member 2 | `/api/research` (historical 2,500-CVE cohort; never mixed with the 2026 benchmark). `mvp_100/` is ignored. |
+
+Endpoints added/changed: `GET /api/patch-budget`, `GET /api/research` (concentration, out-of-time headline computed from the per-family file and cross-checked against `research_metrics.json`, baselines, CWE x family, cohort meta, sample caption), `/api/families` (population KEV rate/lift, sample rates, CI, representative CVEs, `caveat` for Family 8), `/api/families/{id}` (adds attack-surface and vulnerability-type breakdowns, `historical_examples` from the historical summary, `representative_2026`), `/api/cves/{id}` (Granite extraction fields + `extraction_source`; list payloads stay lean). `/api/overview` now reports `ranking`, `lift_over_epss` (generic: ranking-method row vs the `EPSS` row). `/api/distributions` has `rank_epss` instead of a score histogram when there is no score.
+
+Rules enforced in the UI: family rates are "Observed (historical), population-weighted" and never shown as a per-CVE probability; sample rates only behind a toggle with the exact research-cohort caption; Family 8 always carries its caveat; precision/recall/ROC UI appears only if those columns exist.
+
+Known issue: `src/ai` brief/Cortex templates format `prediction_score` as a float, so the API passes a neutral 0.0 placeholder to them; they also contain hardcoded historical claims (15x-35x, 30x). The web UI never displays that placeholder.
+
 ## Integration with Members 1 & 2 (drop-in, no code changes)
 
 Teammates finish their parts and drop files into the results folder; the site picks them up on the next request (the API checks file mtimes and reloads). Run `python -m src.api.validate` to check a drop.

@@ -93,6 +93,7 @@ main:focus { outline: none; }
 .prov i { width: 6px; height: 6px; border-radius: 2px; }
 .prov-observed i, .prov-template i { background: var(--prov-observed); }
 .prov-snapshot i { background: var(--prov-observed); border-radius: 50%; }
+.prov-granite i { background: var(--prov-model); border-radius: 1px; transform: rotate(45deg) scale(.85); }
 .prov-source i { background: var(--text-3); border-radius: 1px; }
 .prov-model i { background: var(--prov-model); border-radius: 50%; }
 .prov-ai i { background: var(--prov-ai); transform: rotate(45deg); } .prov-mixed i { background: linear-gradient(90deg, var(--prov-observed) 50%, var(--prov-model) 50%); }
@@ -396,3 +397,21 @@ input[type="range"] { width: 100%; accent-color: var(--accent); min-height: 38px
 .data-table tr.is-dim, .chip.is-dim { opacity: 0.4; }
 @media (hover: hover) and (pointer: fine) { .data-table tr.row-model:hover { background: var(--surface-2); } }
 @media (prefers-reduced-motion: reduce) { .nav-links a::after { transition: none; } }
+
+/* ---- families / research additions ---- */
+.bd-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.bd-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: var(--sp-2); align-items: center; font-size: 13px; }
+.bd-label { overflow-wrap: anywhere; color: var(--text-2); }
+.bd-track { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.bd-track i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.bd-val { color: var(--text-3); white-space: nowrap; }
+.heat { border-collapse: collapse; width: 100%; font-size: 12px; }
+.heat th, .heat td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: center; }
+.heat th[scope='row'] { text-align: left; white-space: nowrap; }
+.heat td { font-family: var(--font-mono); color: var(--text); }
+.heat td.blank { color: var(--text-3); }
+.story-sect { display: grid; gap: var(--sp-3); }
+.story-kicker { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); margin: 0; }
+.big-stat { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--sp-3); }
+.big-stat .num { font-size: 32px; font-weight: 600; }
+.chips-row { display: flex; flex-wrap: wrap; gap: 8px; }

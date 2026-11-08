@@ -1,5 +1,5 @@
-import { api, type CVE } from '../api';
-import { h, clear, fmtEpss, fmtScore, reducedMotion } from '../util';
+import { api, type CVE, type Family } from '../api';
+import { h, clear, fmtEpss, fmtPct, fmtInt, reducedMotion } from '../util';
 import { state, emit } from '../state';
 import { skeleton, errorState, signalChips, cveFacts } from './ui';
 import { provenanceTag } from '../charts';
@@ -67,9 +67,9 @@ export function renderCve(c: CVE): HTMLElement {
   return h('div', { class: 'cve-detail' },
     h('div', { class: 'score-row' },
       h('div', { class: 'score-cell' }, h('span', { class: 'label' }, 'Rank'), h('span', { class: 'big num' }, `#${c.rank}`), c.in_top500 ? h('span', { class: 'chip' }, 'Top 500') : h('span', { class: 'muted' }, 'Not in top 500')),
-      h('div', { class: 'score-cell' }, h('span', { class: 'label' }, 'Model score'), h('span', { class: 'big num' }, fmtScore(c.prediction_score))),
+      h('div', { class: 'score-cell' }, h('span', { class: 'label' }, 'Top 500'), h('span', { class: 'big num' }, c.in_top500 ? 'Yes' : 'No')),
       h('div', { class: 'score-cell' }, h('span', { class: 'label' }, 'EPSS'), h('span', { class: 'big num' }, fmtEpss(c.epss)))),
-    h('div', { class: 'prov-row' }, provenanceTag('model'), h('span', { class: 'muted' }, 'Rank and score are model predictions, not observed KEV status; EPSS is an observed snapshot signal.')),
+    h('div', { class: 'prov-row' }, provenanceTag('model'), h('span', { class: 'muted' }, 'Rank is a model prediction, not observed KEV status; EPSS is an observed snapshot signal.')),
     h('section', { class: 'sect' },
       h('div', { class: 'sect-head' }, h('h3', { class: 'card-title' }, 'Public exploit signals'), provenanceTag('snapshot')),
       signalChips(c)),
@@ -77,5 +77,35 @@ export function renderCve(c: CVE): HTMLElement {
       h('div', { class: 'sect-head' }, h('h3', { class: 'card-title' }, 'Details'), provenanceTag('source')),
       cveFacts(c),
       c.description ? h('p', { class: 'desc' }, c.description) : h('p', { class: 'muted' }, 'No description available in the loaded data.')),
+    graniteSection(c),
+    h('div', { class: 'sect' }, h('button', { type: 'button', class: 'btn', onClick: () => emit('chat:ask', { text: `Explain ${c.cve_id}`, context: c.cve_id }) }, 'Ask Gemini about this CVE')),
     aiPanel(c.cve_id));
+}
+
+const dash = (v: string | null | undefined): string | Node => (v && v !== 'unknown' ? v : h('span', { class: 'muted' }, 'unknown'));
+
+/** IBM Granite extraction (Member 2) + the family's historical pattern, kept visibly apart from the CVE's own rank. */
+function graniteSection(c: CVE): HTMLElement {
+  const fam = h('div', { class: 'family-note' });
+  if (c.family_id) {
+    void api.families().then((fs: Family[]) => {
+      const f = fs.find((x) => x.family_id === c.family_id);
+      if (!f) return;
+      fam.append(
+        h('p', {}, h('b', {}, `Family ${f.family_id}: ${f.family_name}`)),
+        h('p', { class: 'num' }, `Historical population KEV rate ${f.population_kev_rate === null ? 'not computed yet' : fmtPct(f.population_kev_rate, 2)}`, f.population_lift === null ? '' : ` · lift ${f.population_lift.toFixed(2)}×`, ` · ${fmtInt(f.family_size)} CVEs in 2026`),
+        h('p', { class: 'muted' }, 'Observed (historical), population-weighted: a historical family pattern, not this CVE’s probability.'),
+        ...(f.caveat ? [h('p', { class: 'state-body' }, f.caveat)] : []));
+    }).catch(() => { /* family block is optional */ });
+  }
+  const row = (k: string, v: Node | string | null) => h('div', { class: 'fact' }, h('dt', {}, k), h('dd', {}, v ?? ''));
+  return h('section', { class: 'sect' },
+    h('div', { class: 'sect-head' }, h('h3', { class: 'card-title' }, 'Granite extraction'), h('span', { class: 'prov prov-model' }, h('i', { 'aria-hidden': 'true' }), c.extraction_source ?? 'IBM Granite extraction (Member 2)')),
+    c.extraction_method || c.remote_local ? h('dl', { class: 'facts' },
+      row('Remote / local', dash(c.remote_local)), row('Authentication required', dash(c.auth_required)),
+      row('Vulnerability type', dash(c.vulnerability_type)), row('Attack surface', dash(c.attack_surface)),
+      row('Product / vendor', dash(c.product_or_vendor)),
+      row('Extraction', c.extraction_method ? `${c.extraction_method} · confidence ${c.extraction_confidence ?? 'unknown'}` : null)) : h('p', { class: 'muted' }, 'Not computed yet - waiting on Member 2.'),
+    c.evidence ? h('blockquote', { class: 'desc' }, `Evidence: ${c.evidence}`) : null,
+    fam);
 }

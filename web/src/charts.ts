@@ -129,9 +129,9 @@ export type ChartCardOpts = {
   /** Keyboard equivalent of clicking the chart: one button per mark, shown on focus. */
   actions?: { label: string; run: () => void }[]; actionsLabel?: string;
 };
-export type ProvKind = 'observed' | 'snapshot' | 'source' | 'model' | 'ai' | 'mixed' | 'template';
+export type ProvKind = 'observed' | 'snapshot' | 'source' | 'model' | 'ai' | 'mixed' | 'template' | 'granite';
 export function provenanceTag(kind: ProvKind): HTMLElement {
-  const label = { observed: 'Observed (historical)', snapshot: 'Observed signal (snapshot)', source: 'Source data (NVD)', model: 'Model prediction', ai: 'AI-generated', mixed: 'Observed + model', template: 'Template from data' }[kind];
+  const label = { observed: 'Observed (historical)', snapshot: 'Observed signal (snapshot)', source: 'Source data (NVD)', model: 'Model prediction', ai: 'AI-generated', mixed: 'Observed + model', template: 'Template from data', granite: 'IBM Granite assignment' }[kind];
   return h('span', { class: `prov prov-${kind}` }, h('i', { 'aria-hidden': 'true' }), label);
 }
 

@@ -6,6 +6,7 @@ import { mountDashboard } from './pages/dashboard';
 import { mountOverview } from './pages/overview';
 import { mountTop500 } from './pages/top500';
 import { mountFamilies } from './pages/families';
+import { mountResearch } from './pages/research';
 import { mountModels } from './pages/models';
 import { mountAnalyst } from './pages/analyst';
 
@@ -15,6 +16,7 @@ export const PAGES: { id: PageId; label: string; title: string; mount: Mount }[]
   { id: 'overview', label: 'Overview', title: 'Overview', mount: mountOverview },
   { id: 'top500', label: 'Top 500', title: 'Top 500', mount: mountTop500 },
   { id: 'families', label: 'Families', title: 'Families', mount: mountFamilies },
+  { id: 'research', label: 'Research', title: 'Research Discoveries', mount: mountResearch },
   { id: 'models', label: 'Model Evaluation', title: 'Model Evaluation', mount: mountModels },
   { id: 'analyst', label: 'AI Analyst', title: 'AI Analyst', mount: mountAnalyst },
 ];

@@ -1,5 +1,5 @@
 import { familyWaiting, emit } from '../state';
-import { h, clear, setMarkdown, fmtPct, fmtEpss, fmtScore, SIGNALS, stagger, reducedMotion } from '../util';
+import { h, clear, setMarkdown, fmtPct, fmtEpss, SIGNALS, stagger, reducedMotion } from '../util';
 import type { CVE, Grounding, AiSource } from '../api';
 import { ApiError } from '../api';
 import { provenanceTag, type ProvKind } from '../charts';
@@ -20,12 +20,13 @@ export function emptyState(title: string, body?: string): HTMLElement {
   return h('div', { class: 'state' }, h('p', { class: 'state-title' }, title), body ? h('p', { class: 'state-body' }, body) : null);
 }
 
-export type Dataset = 'predictions' | 'metrics' | 'families';
+export type Dataset = 'predictions' | 'metrics' | 'families' | 'research';
 /** Who/what each dataset waits on (spec: docs/WEB_PLATFORM.md). */
 export const WAITING: Record<Dataset, { who: string; file: string }> = {
   predictions: { who: 'Member 1', file: 'predictions.csv' },
-  metrics: { who: 'Member 1', file: 'metrics.csv' },
-  families: { who: 'Member 2', file: 'family_summary.csv' },
+  metrics: { who: 'Member 1', file: 'model_metrics.csv' },
+  families: { who: 'Member 2', file: 'benchmark_2026/family_summary.csv' },
+  research: { who: 'Member 2', file: 'temporal_validation_2024_2025.csv' },
 };
 export const waitingText = (d: Dataset) => `Waiting on ${WAITING[d].who}'s ${WAITING[d].file}`;
 /** Whole-section empty state for data that has not been delivered yet. */
@@ -147,7 +148,7 @@ export function cveMiniCard(c: CVE, onOpen: (id: string) => void): HTMLElement {
     onPointerEnter: () => emit('cve:hover', c.cve_id), onPointerLeave: () => emit('cve:hover', null), onFocus: () => emit('cve:hover', c.cve_id), onBlur: () => emit('cve:hover', null) },
     h('span', { class: 'cve-mini-top' }, h('span', { class: 'mono' }, c.cve_id), h('span', { class: 'rank num' }, `#${c.rank}`)),
     h('span', { class: 'cve-mini-meta' }, familyLabel(c.family_name, 'Unassigned family')),
-    h('span', { class: 'cve-mini-foot' }, signalDots(c), h('span', { class: 'num muted' }, `score ${fmtScore(c.prediction_score)} · EPSS ${fmtEpss(c.epss)}`)));
+    h('span', { class: 'cve-mini-foot' }, signalDots(c), h('span', { class: 'num muted' }, `EPSS ${fmtEpss(c.epss)}`)));
 }
 
 export function cveFacts(c: CVE): HTMLElement {
@@ -157,7 +158,7 @@ export function cveFacts(c: CVE): HTMLElement {
     row('Published', c.published),
     row('Attack vector', c.attack_vector ?? c.remote_local),
     row('Authentication', c.auth_required),
-    row('Attack type', c.attack_type),
+    row('Vulnerability type', c.vulnerability_type),
     row('CVSS 3.x', c.cvss3_score === null ? null : String(c.cvss3_score)),
     row('CWE', c.cwe_ids));
 }

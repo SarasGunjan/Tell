@@ -11,7 +11,7 @@ function starterList(top1: string | null, topFamily: string | null): string[] {
   if (state.selection) s.push(`Explain ${state.selection}`);
   if (state.page === 'families' && topFamily) s.push(`Tell me about ${topFamily}`);
   if (top1) s.push(`Why is ${top1} ranked #1?`);
-  s.push('Which model has the best hits and precision?', 'Show top CVEs with Metasploit modules', 'Top 5 riskiest');
+  s.push('Which model has the most hits?', 'What did the research discover?', 'Show top CVEs with Metasploit modules', 'Top 5 riskiest');
   return s.slice(0, 5);
 }
 
@@ -33,7 +33,7 @@ export function mountChat(app: HTMLElement): void {
   paintStarters();
   log.appendChild(starters);
   void api.cves({ scope: 'top500', limit: 1 }).then((r) => { top1 = r.items[0]?.cve_id ?? null; paintStarters(); }).catch(() => { /* generic starters remain */ });
-  void api.families().then((f) => { topFamily = [...f].sort((a, b) => (b.hist_kev_rate ?? 0) - (a.hist_kev_rate ?? 0))[0]?.family_name ?? null; paintStarters(); }).catch(() => { /* generic starters remain */ });
+  void api.families().then((f) => { topFamily = [...f].sort((a, b) => (b.population_lift ?? 0) - (a.population_lift ?? 0))[0]?.family_name ?? null; paintStarters(); }).catch(() => { /* generic starters remain */ });
   bus.addEventListener('selectionchange', paintStarters);
   bus.addEventListener('pagerendered', paintStarters);
 
@@ -71,6 +71,8 @@ export function mountChat(app: HTMLElement): void {
     emit('chat:toggle', v);
   }
   bus.addEventListener('chat:open', () => setOpen(true));
+  bus.addEventListener('chat:ask', ((e: CustomEvent<{ text: string; context: string }>) => { state.chatContext = e.detail.context; setOpen(true); void send(e.detail.text); }) as EventListener);
+  bus.addEventListener('pagerendered', () => { state.chatContext = null; });
   panel.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Escape') { e.stopPropagation(); setOpen(false); } });
 
   const scrollEnd = () => { log.scrollTop = log.scrollHeight; };
@@ -88,7 +90,7 @@ export function mountChat(app: HTMLElement): void {
     log.appendChild(pending); scrollEnd();
     let failed = false;
     try {
-      const r = await api.chat(history.slice(-12), state.page, state.selection);
+      const r = await api.chat(history.slice(-12), state.page, state.chatContext ?? state.selection);
       history.push({ role: 'assistant', content: r.reply });
       const msgEl = assistantMsg(r);
       pending.replaceWith(msgEl);

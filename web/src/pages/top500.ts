@@ -1,5 +1,5 @@
 import { api, type CVE, type Family } from '../api';
-import { h, clear, fmtInt, fmtScore, fmtEpss, debounce, SIGNALS, stagger, type SignalKey } from '../util';
+import { h, clear, fmtInt, fmtEpss, debounce, SIGNALS, stagger, type SignalKey } from '../util';
 import { state, bus } from '../state';
 import { emptyState, errorState, signalDots, skeleton, waitingState, familyLabel } from '../components/ui';
 import { provenanceTag } from '../charts';
@@ -18,7 +18,7 @@ export function mountTop500(root: HTMLElement): () => void {
   const epss = h('input', { type: 'range', id: 'f-epss', min: '0', max: '100', step: '1', value: String(toSlider(f().min_epss)) });
   const epssOut = h('output', { class: 'num', for: 'f-epss' }, fmtEpssSlider(f().min_epss));
   const sort = h('select', { class: 'input', id: 'f-sort' },
-    h('option', { value: 'rank' }, 'Model rank'), h('option', { value: 'score' }, 'Model score'), h('option', { value: 'epss' }, 'EPSS'));
+    h('option', { value: 'rank' }, 'Rank'), h('option', { value: 'epss' }, 'EPSS'));
   const chips = h('div', { class: 'chips', role: 'group', 'aria-label': 'Require exploit signals' },
     SIGNALS.map((s) => h('button', { type: 'button', class: 'chip chip-toggle', 'data-sig': s.key, 'aria-pressed': 'false' }, s.label)));
   const reset = h('button', { type: 'button', class: 'btn btn-ghost' }, 'Reset');
@@ -68,7 +68,7 @@ export function mountTop500(root: HTMLElement): () => void {
   const apply = (patch: Partial<typeof state.top500>) => { state.top500 = { ...f(), ...patch, offset: patch.offset ?? 0 }; void load(); };
   search.addEventListener('input', debounce(() => apply({ q: (search as HTMLInputElement).value.trim() }), 300));
   family.addEventListener('change', () => apply({ family_id: (family as HTMLSelectElement).value }));
-  sort.addEventListener('change', () => apply({ sort: (sort as HTMLSelectElement).value as 'rank' | 'epss' | 'score' }));
+  sort.addEventListener('change', () => apply({ sort: (sort as HTMLSelectElement).value as 'rank' | 'epss' }));
   const applyEpss = debounce((v: number) => apply({ min_epss: v }), 200);
   epss.addEventListener('input', () => { const v = fromSlider(Number((epss as HTMLInputElement).value)); epssOut.textContent = fmtEpssSlider(v); applyEpss(v); });
   chips.addEventListener('click', (e) => {
@@ -93,7 +93,7 @@ export function mountTop500(root: HTMLElement): () => void {
     h('div', { class: 'field field-end' }, reset));
 
   root.append(
-    pageHead('Top 500', 'The model’s shortlist of CVEs on the 2026 scoreboard, ranked by predicted likelihood of entering KEV.', h('div', { class: 'head-tags' }, provenanceTag('model'))),
+    pageHead('Top 500', 'The shortlist of CVEs on the 2026 scoreboard, ranked by the current ranking method (public exploit code, then EPSS). A prediction, not confirmed KEV status.', h('div', { class: 'head-tags' }, provenanceTag('model'))),
     bar,
     h('section', { class: 'card table-card', 'data-explain': 'table-top500', 'aria-label': 'Top 500 table' },
       h('div', { class: 'card-head' }, count, h('div', { class: 'card-tools' }, h('span', { class: 'sig-legend', 'aria-label': 'Signal legend' }, SIGNALS.map((s) => h('span', { class: 'sig-key' }, h('i', { class: `sig on sig-${s.key}`, 'aria-hidden': 'true' }), s.label))), explainButton('table-top500', 'Top 500 table'))),
@@ -120,19 +120,19 @@ function table(items: CVE[], animate: boolean): HTMLElement {
       h('td', { class: 'num rank-cell' }, `#${c.rank}`),
       h('th', { scope: 'row', class: 'id-cell' },
         h('button', { type: 'button', class: 'link-btn mono', 'aria-label': `Open details for ${c.cve_id}`, onClick: (e: Event) => { e.stopPropagation(); openCve(c.cve_id); } }, c.cve_id)),
-      h('td', { class: 'num' }, fmtScore(c.prediction_score)),
       h('td', { class: 'num' }, fmtEpss(c.epss)),
       h('td', {}, signalDots(c)),
       h('td', { class: 'col-fam' }, familyLabel(c.family_name)),
+      h('td', { class: 'col-vt' }, c.vulnerability_type && c.vulnerability_type !== 'unknown' ? c.vulnerability_type : h('span', { class: 'muted' }, 'unknown')),
       h('td', { class: 'col-pub num' }, c.published));
     return tr;
   }));
   const t = h('table', { class: 'data-table' },
-    h('caption', { class: 'sr-only' }, 'Top 500 CVEs ranked by model score'),
+    h('caption', { class: 'sr-only' }, 'Top 500 CVEs by rank'),
     h('thead', {}, h('tr', {},
       h('th', { scope: 'col', class: 'num' }, 'Rank'), h('th', { scope: 'col' }, 'CVE'),
-      h('th', { scope: 'col', class: 'num' }, 'Model score'), h('th', { scope: 'col', class: 'num' }, 'EPSS'),
-      h('th', { scope: 'col' }, 'Signals'), h('th', { scope: 'col', class: 'col-fam' }, 'Family'), h('th', { scope: 'col', class: 'col-pub' }, 'Published'))),
+      h('th', { scope: 'col', class: 'num' }, 'EPSS'),
+      h('th', { scope: 'col' }, 'Signals'), h('th', { scope: 'col', class: 'col-fam' }, 'Family'), h('th', { scope: 'col', class: 'col-vt' }, 'Vuln type'), h('th', { scope: 'col', class: 'col-pub' }, 'Published'))),
     body);
   if (animate) stagger(body);
   return t;
