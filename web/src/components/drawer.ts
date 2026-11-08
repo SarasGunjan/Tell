@@ -78,7 +78,7 @@ export function renderCve(c: CVE): HTMLElement {
       cveFacts(c),
       c.description ? h('p', { class: 'desc' }, c.description) : h('p', { class: 'muted' }, 'No description available in the loaded data.')),
     graniteSection(c),
-    h('div', { class: 'sect' }, h('button', { type: 'button', class: 'btn', onClick: () => emit('chat:ask', { text: `Explain ${c.cve_id}`, context: c.cve_id }) }, 'Ask Gemini about this CVE')),
+    h('div', { class: 'sect' }, h('button', { type: 'button', class: 'btn', onClick: () => emit('chat:ask', { text: `Explain ${c.cve_id}`, context: c.cve_id }) }, 'Ask Telly about this CVE')),
     aiPanel(c.cve_id));
 }
 
