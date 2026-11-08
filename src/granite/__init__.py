@@ -1,5 +1,14 @@
-# IBM Granite analysis package
-from .feature_extraction import extract_granite_attributes
-from .cluster_families import run_granite_clustering, FAMILIES_DEF
+"""ThreatRank Member 2 — IBM Granite Intelligence & Research package."""
 
-__all__ = ["extract_granite_attributes", "run_granite_clustering", "FAMILIES_DEF"]
+__all__ = [
+    "config",
+    "load_data",
+    "embeddings",
+    "extraction",
+    "clustering",
+    "family_analysis",
+    "cwe_analysis",
+    "export",
+    "pipeline",
+]
+

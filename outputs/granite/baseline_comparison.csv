@@ -1,0 +1,6 @@
+method,num_groups,non_missing_coverage,peak_group_kev_rate,peak_group_lift,top3_groups_kev_share,top3_groups_volume_share,top3_concentration_ratio
+IBM Granite Embeddings (KMeans),10,1.0,0.328358,2.59,0.6467,0.3556,1.82
+TF-IDF Text Baseline (KMeans),10,1.0,0.56,4.42,0.3691,0.178,2.07
+Simple Keyword Rules,12,0.6344,0.47619,3.76,0.3849,0.1628,2.36
+Official CWE Top Categories,10,0.9464,0.368421,2.91,0.1703,0.0788,2.16
+CVSSv3 Severity × Attack Vector,14,0.9688,0.326034,2.57,0.877,0.5116,1.71

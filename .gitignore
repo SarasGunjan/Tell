@@ -1,33 +1,39 @@
-# Tell Platform .gitignore
+# Python virtual environments & bytecode
+.venv/
+venv/
+env/
+ENV/
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-.venv/
 
-# Environment and Secrets
+# Credentials & environment secrets
 .env
 *.key
 *.pem
 
-# IDEs
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
+# Downloaded model weights & embedding caches
+.cache/
+models/*.bin
+models/*.safetensors
+models/*.pt
+*.npy
+*.npz
 
-# Raw Data and Embedding Caches (Exclude huge 800MB CSVs from Git sync)
+# Large raw datasets & temporary files
+data/raw/
 data/*.csv
 !data/.gitkeep
 *.parquet
 *.h5
+*.tmp
+*.bak
 
-# Models and Caches
+# Test & IDE caches
 .pytest_cache/
 .coverage
 htmlcov/
+.idea/
+.vscode/
+.DS_Store
+
