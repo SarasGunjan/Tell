@@ -39,7 +39,11 @@ class GeminiBriefGenerator:
                     "You are a Senior Vulnerability Intelligence Analyst at Tell. "
                     "Write a crisp, evidence-grounded security brief for this vulnerability. "
                     "Include: Executive Summary, Technical Attack Vector, Weaponization Signals, "
-                    "and Recommended Mitigation. Do NOT invent numbers or post-snapshot facts.\n\n"
+                    "and Recommended Mitigation. Do NOT invent numbers or post-snapshot facts.\n"
+                    "Rules: no date, author or analyst lines. Use only fields present in the data; if a field is null "
+                    "(e.g. CVSS, description), say it is not available instead of guessing a severity label. "
+                    "Never say a CVE will be exploited or give a likelihood; say it ranks high because of the listed "
+                    "signals (EPSS, public exploit code, family). The rank is an ordering, not a probability.\n\n"
                     f"Vulnerability Data: {json.dumps(cve_context)}"
                 )
 
