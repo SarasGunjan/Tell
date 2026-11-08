@@ -43,7 +43,7 @@ export function mountPet(app: HTMLElement): void {
   let hoverOn = store.get(HOVER_KEY) === 'on';
 
   // ---------- DOM ----------
-  const body = h('button', { type: 'button', class: 'pet-body', 'aria-label': 'Crafternauta, your Tell guide. Open chat. Arrow keys move me.', title: 'Open chat (drag to move)' });
+  const body = h('button', { type: 'button', class: 'pet-body', 'aria-label': 'Telly, your Tell guide. Open chat. Arrow keys move me.', title: 'Open chat (drag to move)' });
   const sprite = h('span', { class: 'pet-sprite', 'aria-hidden': 'true' });
   body.append(sprite);
   const inner = h('div', { class: 'pet-inner' }, body);
@@ -61,7 +61,7 @@ export function mountPet(app: HTMLElement): void {
   const minBtn = h('button', { type: 'button', class: 'pet-chip', 'aria-label': 'Minimize assistant', title: 'Minimize', onClick: () => setMin(true) }, '–');
   const tools = h('div', { class: 'pet-tools' }, hoverBtn, minBtn);
   const root = h('div', { class: 'pet', 'data-state': 'idle' }, inner, tools, bubble, sr);
-  const dockTab = h('button', { type: 'button', class: 'pet-tab', 'aria-label': 'Show Crafternauta, your Tell guide', hidden: true, onClick: () => { setMin(false); } }, 'Crafternauta');
+  const dockTab = h('button', { type: 'button', class: 'pet-tab', 'aria-label': 'Show Telly, your Tell guide', hidden: true, onClick: () => { setMin(false); } }, 'Telly');
   app.append(root, dockTab);
 
 

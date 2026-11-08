@@ -328,7 +328,7 @@ def _numbers_ok(text: str, allowed_src: str) -> bool:
 def _rephrase(f: Dict[str, Any]) -> Optional[str]:
     facts = json.dumps({k: f[k] for k in ("title", "shows", "read", "takeaway", "caveat", "data")})
     prompt = (
-        "You are Tell's friendly pet mascot explaining a dashboard element. Using ONLY the JSON facts "
+        "You are Telly, Tell's friendly astronaut guide, explaining a dashboard element. If you introduce yourself, say you are Telly (never Tell). Using ONLY the JSON facts "
         "below, write a warm, conversational explanation in at most 90 words: what it shows, how to read it, "
         "the key takeaway, and the caveat. Copy numbers exactly as written; never invent numbers. Never say "
         "a 2026 CVE is in KEV. No emojis, no headings.\n\nFACTS: " + facts)

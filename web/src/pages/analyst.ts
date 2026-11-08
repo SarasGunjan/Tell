@@ -62,7 +62,7 @@ export function mountAnalyst(root: HTMLElement): () => void {
   }).catch(() => { /* suggestions are optional */ });
 
   root.append(
-    pageHead('Ask Tell', 'Generate a grounded brief for one CVE and ask follow-up questions. Every answer is checked against the data.'),
+    pageHead('Ask Telly', 'Generate a grounded brief for one CVE and ask follow-up questions. Every answer is checked against the data.'),
     h('div', { class: 'card picker' },
       h('label', { for: 'pick', class: 'field-label' }, 'CVE'),
       h('div', { class: 'picker-box' }, input, list)),

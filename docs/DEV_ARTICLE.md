@@ -75,12 +75,12 @@ chart carries a label for where its numbers come from (observed, model, IBM Gran
 
 ## 4. An assistant that can't make things up
 
-**Ask Tell** is a chat assistant on **Google Gemini** (`gemini-2.5-flash`) with function calling. It can't answer from
+**Telly** is our chat assistant on **Google Gemini** (`gemini-2.5-flash`) with function calling. It can't answer from
 memory. It calls tools that read our results (look up a CVE, filter the top 500, compare families), and a grounding
 check verifies every CVE-specific claim against the data before you see it. If Gemini is down, a rule-based router
 answers the common questions from the same tools.
 
-There's also a small pixel astronaut, Crafternauta, who walks around the site and explains each chart in plain English.
+Telly also lives on the page as a small pixel astronaut who walks around the site and explains each chart in plain English.
 
 ## 5. Shipping it
 

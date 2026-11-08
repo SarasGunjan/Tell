@@ -5,7 +5,7 @@ import { explainButton } from './explain';
 
 const fadeIn = (el: HTMLElement): HTMLElement => { el.classList.add('fade-in'); return el; };
 
-/** Brief + Ask for one CVE. Used by the drawer and the Ask Tell page. */
+/** Brief + Ask for one CVE. Used by the drawer and the Ask Telly page. */
 export function aiPanel(cveId: string): HTMLElement {
   const briefOut = h('div', { class: 'ai-out', 'aria-live': 'polite' });
   const askOut = h('div', { class: 'ai-out', 'aria-live': 'polite' });

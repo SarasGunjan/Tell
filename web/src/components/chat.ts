@@ -37,7 +37,7 @@ export function mountChat(app: HTMLElement): void {
   bus.addEventListener('selectionchange', paintStarters);
   bus.addEventListener('pagerendered', paintStarters);
 
-  const input = h('textarea', { class: 'input chat-input', id: 'chat-input', rows: '1', placeholder: 'Ask Tell…', 'aria-label': 'Message', maxlength: '1000' });
+  const input = h('textarea', { class: 'input chat-input', id: 'chat-input', rows: '1', placeholder: 'Ask Telly…', 'aria-label': 'Message', maxlength: '1000' });
   const sendBtn = h('button', { type: 'submit', class: 'btn btn-primary' }, 'Send');
   const form = h('form', { class: 'chat-form', onSubmit: (e: Event) => { e.preventDefault(); const v = (input as HTMLTextAreaElement).value.trim(); if (v) void send(v); } }, input, sendBtn);
   input.addEventListener('keydown', (e) => {
@@ -48,8 +48,8 @@ export function mountChat(app: HTMLElement): void {
 
   const closeBtn = h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Close assistant', onClick: () => setOpen(false) }, '✕');
   const resetBtn = h('button', { type: 'button', class: 'btn btn-ghost btn-sm', onClick: () => { history.length = 0; clear(log); log.appendChild(starters); } }, 'New chat');
-  const panel = h('section', { class: 'chat-panel', id: 'chat-panel', role: 'dialog', 'aria-label': 'Tell assistant', 'aria-modal': 'false', hidden: true },
-    h('header', { class: 'chat-head' }, h('h2', { class: 'chat-title' }, 'Assistant'), h('div', { class: 'card-tools' }, resetBtn, closeBtn)),
+  const panel = h('section', { class: 'chat-panel', id: 'chat-panel', role: 'dialog', 'aria-label': 'Telly, the Tell assistant', 'aria-modal': 'false', hidden: true },
+    h('header', { class: 'chat-head' }, h('h2', { class: 'chat-title' }, 'Telly'), h('div', { class: 'card-tools' }, resetBtn, closeBtn)),
     log, form);
   const launcher = h('button', { type: 'button', class: 'chat-launcher', 'aria-expanded': 'false', 'aria-controls': 'chat-panel', onClick: () => setOpen(!open) },
     h('span', { class: 'launcher-dot', 'aria-hidden': 'true' }), 'Ask');

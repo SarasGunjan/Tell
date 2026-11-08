@@ -20,7 +20,7 @@ export const PAGES: { id: PageId; label: string; title: string; mount: Mount }[]
   { id: 'families', label: 'Families', title: 'Families', mount: mountFamilies },
   { id: 'discoveries', label: 'Discoveries', title: 'Discoveries', mount: mountResearch },
   { id: 'how-we-ranked', label: 'How We Ranked', title: 'How We Ranked', mount: mountModels },
-  { id: 'ask', label: 'Ask Tell', title: 'Ask Tell', mount: mountAnalyst },
+  { id: 'ask', label: 'Ask Telly', title: 'Ask Telly', mount: mountAnalyst },
   { id: 'story', label: 'Our Story', title: 'Our Story', mount: mountStory },
 ];
 const ids = new Set<string>(PAGES.map((p) => p.id));

@@ -51,14 +51,13 @@ because descriptions can be edited after disclosure.
 | Families | Historical exploitation rate and 2026 size of each Granite family |
 | Discoveries | Where exploitation concentrates and the out-of-time check |
 | How We Ranked | The five methods compared at 100, 250 and 500 |
-| Ask Tell | AI briefs and questions about any CVE, answered only from our data |
+| Ask Telly | AI briefs and questions about any CVE, answered only from our data |
 | Our Story | The full written analysis, fairness notes and limitations |
 
 Every chart is labelled with where its numbers come from (observed, snapshot signal, model, IBM Granite, AI-generated).
-Ask Tell uses Google Gemini with function calling: it can only answer through tools that read our results, and a checker
-verifies CVE-specific claims before they are shown. CVE briefs are written by IBM Granite on watsonx.ai
-(`ibm/granite-3-3-8b-instruct`) when IBM credentials are set, falling back to Gemini otherwise. A pixel astronaut guide
-explains each chart in plain English.
+**Telly**, our assistant, uses Google Gemini (`gemini-2.5-flash`) with function calling: it can only answer through tools
+that read our results, and a checker verifies CVE-specific claims before they are shown. Telly also appears as a pixel
+astronaut that walks the site and explains each chart in plain English.
 
 ## Repository
 
@@ -98,9 +97,9 @@ headers. `deploy/setup_vultr.sh` sets up a fresh server; see [`docs/DEPLOY.md`](
 
 - **Member 1, data science and prediction:** leakage-safe cohorts, baselines, Logistic Regression and LightGBM, the top 500.
 - **Member 2, IBM Granite and research:** embeddings, the 10 families, historical KEV analysis, out-of-time validation.
-- **Member 3, full stack and deployment:** API, website, Ask Tell assistant, Vultr deployment.
+- **Member 3, full stack and deployment:** API, website, Telly assistant, Vultr deployment.
 
-Built with IBM Granite (embeddings and watsonx.ai), Google Gemini (MLH), Vultr (MLH), FastAPI, TypeScript and Chart.js.
+Built with IBM Granite, Google Gemini (MLH), Vultr (MLH), FastAPI, TypeScript and Chart.js.
 
 ## Limitations
 

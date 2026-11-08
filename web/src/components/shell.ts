@@ -142,7 +142,7 @@ export function buildShell(root: HTMLElement): HTMLElement {
   const main = h('main', { id: 'main', tabindex: '-1', class: 'page' });
   const credit = h('footer', { class: 'site-credit' },
     h('p', {}, 'Built for the IBM Before the Breach track · Sheridan Datathon 2026'),
-    h('p', {}, 'Guide sprite: Crafternauta by Railly / Crafter Station via ',
+    h('p', {}, 'Telly is the Crafternauta sprite by Railly / Crafter Station via ',
     h('a', { href: 'https://petdex.dev/pets/cosmo', target: '_blank', rel: 'noopener noreferrer' }, 'petdex.dev'), ' (MIT)'));
   root.append(header, demoBanner(), main, credit);
   void refreshStatus();

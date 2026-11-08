@@ -51,7 +51,7 @@ function sections(): Sect[] {
       h('ul', { class: 'story-list' },
         h('li', {}, h('b', {}, 'Prediction. '), 'A ranked list with a Top 500. See ', link('#/top500', 'Top 500'), ' and ', link('#/signals', 'Signals'), '.'),
         h('li', {}, h('b', {}, 'Understanding. '), 'Granite families that show what vulnerabilities have in common. See ', link('#/families', 'Families'), '.'),
-        h('li', {}, h('b', {}, 'Visualization. '), 'This site, including the ', link('#/galaxy', 'Galaxy'), ' view and the ', link('#/ask', 'Ask Tell'), ' assistant, which explains any CVE in plain language.')),
+        h('li', {}, h('b', {}, 'Visualization. '), 'This site, including the ', link('#/galaxy', 'Galaxy'), ' view and the ', link('#/ask', 'Ask Telly'), ' assistant, which explains any CVE in plain language.')),
     ] },
     { id: 'data', title: 'Data we used and fairness', body: [
       h('p', {}, 'The ranking used only columns that were known at snapshot time, from ', h('span', { class: 'mono' }, 'scoreboard_2026.csv'), ': ', h('span', { class: 'mono' }, 'epss, exploitdb, metasploit, nuclei, poc_github'), '.'),

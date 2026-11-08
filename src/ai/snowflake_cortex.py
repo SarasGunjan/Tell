@@ -4,7 +4,7 @@ Author: Member 3 (Full-Stack, APIs & Deployment)
 
 Implements:
 1. Production REST integration with Snowflake Cortex API (`/api/v2/cortex/analyst/message` or chat completion)
-2. Interactive "Ask Tell" analyst assistant grounded directly in recorded evidence
+2. Interactive "Ask Telly" analyst assistant grounded directly in recorded evidence
 3. Offline demo mode ensuring seamless reliability during datathon judging
 4. Traceable citation of snapshot EPSS, weaponization signals, and IBM Granite family context
 """
@@ -66,7 +66,7 @@ class SnowflakeCortexAssistant:
                     "X-Snowflake-Authorization-Token-Type": "PROGRAMMATIC_ACCESS_TOKEN",
                 }
                 system_instruction = (
-                    "You are Tell AI, an expert cybersecurity threat prioritization intelligence assistant. "
+                    "You are Telly, Tell's expert cybersecurity threat prioritization intelligence assistant. "
                     "Analyze vulnerabilities using strictly provided evidence: snapshot EPSS, public exploit signals "
                     "(Metasploit, Nuclei, ExploitDB, PoC GitHub), and IBM Granite semantic exploit families. "
                     "Never hallucinate post-publication knowledge or state that a 2026 CVE is already verified in KEV. "

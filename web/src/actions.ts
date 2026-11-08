@@ -16,7 +16,7 @@ export function runActions(actions: Action[]): void {
   }
 }
 
-const PAGE_LABEL: Record<string, string> = { galaxy: 'Galaxy', signals: 'Signals', top500: 'Top 500', families: 'Families', discoveries: 'Discoveries', 'how-we-ranked': 'How We Ranked', ask: 'Ask Tell', story: 'Our Story' };
+const PAGE_LABEL: Record<string, string> = { galaxy: 'Galaxy', signals: 'Signals', top500: 'Top 500', families: 'Families', discoveries: 'Discoveries', 'how-we-ranked': 'How We Ranked', ask: 'Ask Telly', story: 'Our Story' };
 
 export function describeAction(a: Action): string | null {
   switch (a.type) {
