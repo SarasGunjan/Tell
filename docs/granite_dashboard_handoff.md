@@ -19,7 +19,7 @@ Member 2 exports two distinct sets of deliverables. **Never mix or concatenate t
   - `outputs/granite/granite_features.csv` (`2,500` rows, `10` columns)
   - `outputs/granite/families.csv` (`2,500` rows, `2` columns)
   - `outputs/granite/family_summary.csv` (`10` rows, `13` columns)
-  - `outputs/granite/cwe_semantic_analysis.csv` (`647` rows, `8` columns)
+  - `outputs/granite/cwe_semantic_analysis.csv` (`647` rows, `6` columns)
   - `outputs/granite/baseline_comparison.csv` (`5` rows, `12` columns)
   - `outputs/granite/temporal_validation_2024_2025.csv` (`10` rows, `9` columns)
 - **2026 Benchmark Files (`outputs/granite/benchmark_2026/`)**:
@@ -87,9 +87,9 @@ Family-level metadata and historical KEV risk profile for all 10 semantic famili
 | `top_characteristics` | `string` | Yes | Summary string with cosine cohesion, dominant mechanisms, primary CWE share, and remote/local split. |
 
 ### 2.4 Research Evaluation Tables (`outputs/granite/`)
-- **`cwe_semantic_analysis.csv` (`647` rows)**:
-  - Columns: `cwe_id, cwe_name, cve_count, distinct_granite_families, dominant_family_id, dominant_family_share, cwe_entropy_bits, family_distribution`
-  - Shows how broad CWEs (e.g., `CWE-79`, `CWE-20`, `CWE-787`, `UNASSIGNED`) split across distinct Granite semantic families.
+- **`cwe_semantic_analysis.csv` (`647` rows, `6` columns)**:
+  - Columns: `family_id, cwe_id, cve_count, family_share, cwe_share_across_families, cwe_name`
+  - Cross-tabulation showing how each `(family_id, cwe_id)` pair distributes across families (`family_share` = fraction of the family having that CWE; `cwe_share_across_families` = fraction of that CWE landing in that Granite family).
 - **`baseline_comparison.csv` (`5` rows)**:
   - Columns: `method, num_groups, non_missing_coverage, peak_group_kev_rate, peak_group_lift, population_peak_kev_rate, population_peak_lift, top3_groups_kev_share, top3_groups_volume_share, top3_concentration_ratio, population_top3_volume_share, population_top3_concentration_ratio`
   - Compares `IBM Granite Embeddings (KMeans)` against `TF-IDF Text Baseline (KMeans)`, `Simple Keyword Rules`, `Official CWE Top Categories`, and `CVSSv3 Severity × Attack Vector`.
