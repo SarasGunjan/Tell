@@ -571,8 +571,8 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
   // ---- legend (generated from encodings.ts) and coach-mark anchors
   const legendList = h('ul', { class: 'lg-list' });
   const legendSym = h('ul', { class: 'lg-sym' }, LEGEND_SYMBOLS.map((x) => h('li', {}, h('i', { class: `lg lg-${x.kind}`, 'aria-hidden': 'true' }), x.text)));
+  // starts closed so it never covers the galaxy on first view; one click opens it
   const legend = h('details', { class: 'galaxy-legend' }, h('summary', {}, 'Legend'), legendList, legendSym);
-  if (!window.matchMedia('(max-width: 700px)').matches) legend.setAttribute('open', '');
   function paintLegend(): void {
     const L = ENCODINGS.layouts[lay];
     legendList.replaceChildren(...L.legend.map((t, k) => h('li', { class: k === L.legend.length - 1 ? 'muted' : '' }, t.replace('{method}', d.ranking_method))));

@@ -64,9 +64,15 @@ async function show(page: PageId): Promise<void> {
     main.focus({ preventScroll: true });
     emit('pagerendered', page);
   };
-  const vt = (document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } }).startViewTransition;
+  type VT = { ready: Promise<void>; finished: Promise<void>; updateCallbackDone: Promise<void> };
+  const vt = (document as Document & { startViewTransition?: (cb: () => void) => VT }).startViewTransition;
   if (current && vt && !reducedMotion()) {
-    try { vt.call(document, swap); return; } catch { /* fall through */ }
+    try {
+      const t = vt.call(document, swap);
+      // fast clicks abort the previous transition; that rejection is expected, not an error
+      [t.ready, t.finished, t.updateCallbackDone].forEach((p) => p.catch(() => {}));
+      return;
+    } catch { /* fall through */ }
   }
   swap();
   if (!reducedMotion()) main.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(0.23,1,0.32,1)' });
