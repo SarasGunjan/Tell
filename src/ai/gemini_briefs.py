@@ -19,7 +19,7 @@ logger = logging.getLogger("Tell.GeminiBriefs")
 class GeminiBriefGenerator:
     def __init__(self):
         self.api_key = os.environ.get("GEMINI_API_KEY", "")
-        self.model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+        self.model = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
         self.is_configured = bool(self.api_key)
 
         if self.is_configured:

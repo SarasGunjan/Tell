@@ -15,7 +15,6 @@ services:
       TELL_RESULTS_DIR: /app/results
       TELL_GRANITE_DIR: /app/outputs/granite
       TELL_DATA_LABEL: ${TELL_DATA_LABEL:-final}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
     volumes:
       # new CSVs dropped here go live via hot reload, no rebuild
       - ../results:/app/results:ro

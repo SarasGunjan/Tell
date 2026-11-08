@@ -94,7 +94,7 @@ def _compact(c: Dict[str, Any]) -> Dict[str, Any]:
 def gemini_call(payload: Dict[str, Any], timeout: int = GEMINI_TIMEOUT) -> Dict[str, Any]:
     """POST to Gemini with the key in a header. Raises on any failure (callers fall back)."""
     key = os.environ.get("GEMINI_API_KEY", "")
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
     url = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent" % model
     r = requests.post(url, json=payload, headers={"x-goog-api-key": key}, timeout=timeout)
     if r.status_code != 200:

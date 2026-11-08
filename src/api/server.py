@@ -163,7 +163,7 @@ def status():
         "granite": granite_briefs.configured(),
         "granite_model": granite_briefs.model_id(),
         "descriptions": s.has_descriptions,
-        "model": os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
+        "model": os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite"),
         "counts": {"cves": int(len(s.df)) if s.has_predictions else None,
                    "top500": int(len(s.top500_df)) if s.has_predictions else None,
                    "families": int(len(s.fam_summary)) if s.fam_summary is not None else None},
