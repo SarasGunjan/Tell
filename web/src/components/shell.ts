@@ -25,7 +25,7 @@ function popoverBody(s: Status | null, err: boolean): HTMLElement[] {
           bad ? h('div', { class: 'pop-missing' }, 'Missing required columns: ', f.missing_required.join(', ')) : null));
     })),
     h('p', { class: 'muted pop-sub' }, 'Top 500 source: ', s.top500_source ? TOP500_SRC[s.top500_source] : 'not computed yet'),
-    h('p', { class: 'muted pop-sub' }, `Gemini: ${s.gemini ? 'live' : 'offline'} (${s.model}) · Snowflake Cortex: ${s.snowflake ? 'live' : 'offline'} · Descriptions: ${s.descriptions ? 'loaded' : 'not loaded'}`),
+    h('p', { class: 'muted pop-sub' }, `Gemini: ${s.gemini ? 'live' : 'offline'} (${s.model}) · IBM Granite briefs: ${s.granite ? `live (${s.granite_model})` : 'offline'} · Snowflake Cortex: ${s.snowflake ? 'live' : 'offline'} · Descriptions: ${s.descriptions ? 'loaded' : 'not loaded'}`),
   ];
 }
 
@@ -79,7 +79,9 @@ function statusPill(): HTMLElement {
       const detail = `Gemini: ${s.gemini ? 'live' : 'offline'} (${s.model}). Snowflake Cortex: ${s.snowflake ? 'live' : 'offline'}. Descriptions: ${s.descriptions ? 'loaded' : 'not loaded'}. ${s.data_label === 'demo' ? 'Demo data.' : 'Final data.'} Open for details.`;
       pill.setAttribute('title', detail);
       pill.setAttribute('aria-label', detail);
-      pill.append(h('span', { class: 'status-sub' }, s.snowflake ? 'Cortex live' : 'Cortex off'));
+      // only name extra services that are on; "Cortex off" read as something broken
+      const extras = [s.granite && 'IBM Granite live', s.snowflake && 'Cortex live'].filter(Boolean) as string[];
+      if (extras.length) pill.append(h('span', { class: 'status-sub' }, extras.join(' · ')));
     }
     clear(pop);
     pop.append(...popoverBody(s, failed));

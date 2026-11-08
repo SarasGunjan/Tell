@@ -60,7 +60,7 @@ export type Galaxy =
       ranking_method: string; x?: (number | null)[]; y?: (number | null)[];
     };
 export type Status = {
-  gemini: boolean; snowflake: boolean; descriptions: boolean; model: string;
+  gemini: boolean; snowflake: boolean; granite?: boolean; granite_model?: string; descriptions: boolean; model: string;
   counts: { cves: number | null; top500: number | null; families: number | null };
   ranking_method: string; has_score: boolean; data_label: 'demo' | 'final'; results_dir: string; top500_source: 'file' | 'derived' | null; files: StatusFile[];
 };

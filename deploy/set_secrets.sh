@@ -6,7 +6,7 @@ set -euo pipefail
 
 HOST="${TELL_HOST:-root@149.28.52.109}"
 SSH_KEY="${TELL_SSH_KEY:-$HOME/.ssh/tell_vultr_ed25519}"
-VARS=(GEMINI_API_KEY SNOWFLAKE_ACCOUNT SNOWFLAKE_USER SNOWFLAKE_PAT)
+VARS=(GEMINI_API_KEY IBM_WATSONX_APIKEY IBM_WATSONX_PROJECT_ID SNOWFLAKE_ACCOUNT SNOWFLAKE_USER SNOWFLAKE_PAT)
 
 updates=""
 for v in "${VARS[@]}"; do
@@ -26,4 +26,4 @@ os.write(fd, (\"\n\".join(out) + \"\n\").encode()); os.close(fd); os.chmod(p, 0o
 print(\"Updated:\", \", \".join(new))
 " && cd /opt/tell && docker compose -f deploy/docker-compose.yml up -d --force-recreate >/dev/null 2>&1
 for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/api/status >/dev/null 2>&1 && break; sleep 2; done
-curl -s http://127.0.0.1:8000/api/status | python3 -c "import json,sys; s=json.load(sys.stdin); print(\"Gemini live:\", s[\"gemini\"], \"| Snowflake live:\", s[\"snowflake\"])"'
+curl -s http://127.0.0.1:8000/api/status | python3 -c "import json,sys; s=json.load(sys.stdin); print(\"Gemini live:\", s[\"gemini\"], \"| IBM Granite live:\", s.get(\"granite\"), \"| Snowflake live:\", s[\"snowflake\"])"'

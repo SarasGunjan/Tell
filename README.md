@@ -1,158 +1,109 @@
-# 🛡️ Tell — Vulnerability Prioritization & Exploit Intelligence Platform
+# Tell: every attack has a tell
 
-**Sheridan Datathon 2026 | IBM Track: "Before the Breach"**  
-*MLH Snowflake Cortex REST API • Vultr Cloud Compute • IBM Granite • Google Gemini*
+**Sheridan Datathon 2026 · IBM "Before the Breach" track**
 
-> **Pitch:**  
-> *“Every team can hand you a ranked list. **Tell explains the patterns behind exploitation** — and uses those patterns to find what matters next.”*
+**Live site: https://149-28-52-109.sslip.io** (any laptop or phone, no login)
 
----
+Over 92,000 vulnerabilities (CVEs) have been published in 2026, and fewer than 1 in 250 is ever confirmed exploited.
+IBM asked: predict which ones attackers will exploit, and show engineers **what to fix first and why**.
+Tell answers with a ranked top 500, IBM Granite vulnerability families that explain the patterns behind exploitation,
+and a website that lets an analyst explore all 72,670 benchmark CVEs.
 
-## 🏆 Project Highlights
+- **Submission:** [`top500.csv`](top500.csv) (one column, `cve_id`, 500 unique IDs, all on `scoreboard_2026.csv`)
+- **Full write-up:** the *Our Story* page on the live site
 
-- **Predictive Power:** Achieves **Hits@500 of 14–19** on the 2025 held-out validation cohort — a **+137% improvement** over the EPSS alone baseline and more than double CVSS severity ranking.
-- **Strict Zero Leakage:** 100% time-safe snapshot construction. Absolutely zero post-publication NIST metadata (`nvd_status`, `last_modified`, `n_references`, `n_affected_cpes`) used for predictive ranking.
-- **IBM Granite Semantic Intelligence:** Clusters 72,670 candidates into 10 behavioral exploit families, revealing that **Authentication Bypass + RCE account for 64% of in-the-wild exploitations**.
-- **Interactive Security Analyst:** Powered by **Snowflake Cortex REST API** (`mistral-large2`) and **Google Gemini** briefs, protected by an automated **Evidence Grounding Guard** that prevents hallucinated scores or fake KEV claims.
-- **Official Datathon Deliverable:** `results/top500.csv` containing exactly 500 deduplicated, eligible 2026 CVE IDs ready for official benchmark scoring.
+## What we found
 
----
+**Ranking.** We compared five methods, training on 2024 and testing on 2025 (Hits@K = later-exploited CVEs in the top K):
 
-## 📂 Repository Structure
+| Method | Hits@100 | Hits@250 | Hits@500 |
+|---|---:|---:|---:|
+| **Public exploit code first, then EPSS** (submitted) | 8 | 15 | **18** |
+| Logistic Regression | 7 | 14 | 16 |
+| LightGBM | 8 | 10 | 16 |
+| EPSS alone | 4 | 8 | 8 |
+
+The simplest rule beat both machine-learning models, so it produced the submitted top 500. Source: [`results/model_metrics.csv`](results/model_metrics.csv).
+
+**IBM Granite discoveries.** `ibm-granite/granite-embedding-small-english-r2` embedded 2,500 historical CVE descriptions;
+K-Means grouped them into 10 families, and every 2026 CVE was assigned one.
+
+- 3 families (Privilege Escalation, Remote Code Execution, RCE with Path Traversal/File Upload) held **64.67%** of 317
+  historical KEV cases while making up about **31.45%** of vulnerabilities (population-weighted).
+- Out of time: the top 2024 families caught **64.24%** of 2025 KEV cases in **33.28%** of volume (**1.93×**).
+- CWE-79 (cross-site scripting) is spread across **8 of 10** families: weakness labels miss context.
+- 8.74% of 2026 CVEs lack CVSS v3 and 6.82% lack a CWE, but 100% have a description, so every CVE gets a family.
+
+Sources: [`outputs/granite/`](outputs/granite). `python -m src.api.validate` rebuilds these numbers from the files.
+
+**Fairness.** The ranking uses only snapshot-time columns from `scoreboard_2026.csv`: `epss`, `exploitdb`, `metasploit`,
+`nuclei`, `poc_github`. It does not use `nvd_status`, `n_affected_cpes`, `n_references`, blank severity scores or
+reference links, which IBM flags as leaky. Granite families explain the ranking; they are not used to produce it,
+because descriptions can be edited after disclosure.
+
+## The website
+
+| Page | What it shows |
+|---|---|
+| Galaxy | All 72,670 CVEs as stars: distance from the core = rank, arm = Granite family, size = EPSS. Tap a star to focus its family, tap again to open it. *Split* separates the 10 families. |
+| Signals | Headline numbers and how EPSS and exploit code spread across the ranking |
+| Top 500 | The submitted shortlist, searchable and filterable |
+| Families | Historical exploitation rate and 2026 size of each Granite family |
+| Discoveries | Where exploitation concentrates and the out-of-time check |
+| How We Ranked | The five methods compared at 100, 250 and 500 |
+| Ask Tell | AI briefs and questions about any CVE, answered only from our data |
+| Our Story | The full written analysis, fairness notes and limitations |
+
+Every chart is labelled with where its numbers come from (observed, snapshot signal, model, IBM Granite, AI-generated).
+Ask Tell uses Google Gemini with function calling: it can only answer through tools that read our results, and a checker
+verifies CVE-specific claims before they are shown. CVE briefs are written by IBM Granite on watsonx.ai
+(`ibm/granite-3-3-8b-instruct`) when IBM credentials are set, falling back to Gemini otherwise. A pixel astronaut guide
+explains each chart in plain English.
+
+## Repository
 
 ```
-tell/
-├── data/                         # Datathon CSV datasets
-│   ├── scoreboard_2026.csv       # 72,670 official 2026 candidates
-│   ├── vulnerabilities.csv       # Historical publication and text data
-│   ├── known_exploited.csv       # CISA KEV outcomes through Dec 2025
-│   └── exploit_signals_*.csv     # Monthly time-safe EPSS and exploit flags
-├── src/
-│   ├── data/
-│   │   └── cohort_builder.py     # Time-safe 2024 train & 2025 val cohort builder
-│   ├── ml/
-│   │   └── train_predict.py      # Baselines, Logistic Regression, LightGBM ranker
-│   ├── granite/
-│   │   ├── feature_extraction.py # IBM Granite attribute extractor (remote/auth)
-│   │   └── cluster_families.py   # Semantic clustering into 10 exploit families
-│   ├── ai/
-│   │   ├── snowflake_cortex.py   # Snowflake Cortex REST API assistant
-│   │   ├── gemini_briefs.py      # Google Gemini structured briefs generator
-│   │   └── evidence_grounding.py # Hallucination & evidence verification engine
-│   └── dashboard/
-│       └── app.py                # Master Streamlit cyber command dashboard
-├── results/                      # Inter-team contract outputs & submission
-│   ├── top500.csv                # Official 500-CVE submission file
-│   ├── predictions.csv           # Full 72,670 scored candidates table
-│   ├── metrics.csv               # Measured backtest metrics (Hits@100/250/500)
-│   ├── granite_features.csv      # Extracted technical features
-│   ├── families.csv              # Detailed semantic family mapping
-│   └── family_summary.csv        # Family statistics & historical KEV rates
-├── models/
-│   └── tell_ranker.pkl           # Trained LightGBM ensemble model
-├── deploy/                       # Vultr Cloud Compute deployment
-│   ├── Dockerfile                # Production container
-│   ├── docker-compose.yml        # Orchestration configuration
-│   ├── nginx.conf                # Reverse proxy with WebSocket support
-│   └── setup_vultr.sh            # Automated VM setup script
-├── docs/                         # Detailed architecture & research reports
-│   ├── ARCHITECTURE.md           # End-to-end technical architecture
-│   ├── LEAKAGE_AUDIT.md          # Zero-leakage compliance report
-│   ├── RESEARCH_FINDINGS.md      # Quantified exploit intelligence insights
-│   └── TEAM_WORKFLOW.md          # 3-person parallel development contracts
-├── tests/
-│   └── test_tell.py              # Automated unit tests for all contracts
-├── .env.example                  # Environment configuration template
-├── requirements.txt              # Pinned Python dependencies
-└── README.md                     # Master documentation
+top500.csv             submission file
+results/               Member 1: predictions, model comparison, patch budget
+outputs/granite/       Member 2: Granite families, research metrics, 2026 assignments
+src/api/               FastAPI read-only API over results/ and outputs/ (+ data validator)
+src/ai/                Gemini briefs, Snowflake Cortex client, evidence grounding
+web/                   TypeScript + Chart.js front end (Vite)
+deploy/                Docker, nginx, Vultr setup, key and domain scripts
+docs/                  architecture, leakage audit, research findings, deploy guide
+tests/                 API and contract tests
 ```
 
----
+Model training and Granite clustering were developed on the `feature/data-ml` and `feature/granite` branches; this
+branch ships their final outputs. `src/dashboard/` is the earlier Streamlit prototype.
 
-## ⚡ Quick Start (Local Run)
+## Run it locally
 
-### 1. Installation
 ```bash
-git clone <your-repo-url> tell
-cd tell
-
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+python3 -m venv .venv && .venv/bin/pip install -r deploy/requirements-web.txt
+.venv/bin/uvicorn src.api.server:app --port 8000          # API
+npm --prefix web install && npm --prefix web run dev       # site on http://localhost:5173
 ```
 
-### 2. Run All Pipelines (Generate Results)
-```bash
-export PYTHONPATH=$(pwd):$PYTHONPATH
+Or with Docker: `docker compose -f deploy/docker-compose.yml up --build` (serves everything on port 8000).
+Optional keys go in `.env` (see `.env.example`); without them the AI features use offline answers.
+Checks: `.venv/bin/python -m pytest tests/test_api.py` and `.venv/bin/python -m src.api.validate`.
 
-# Step A: Train ML Models & Generate Official top500.csv
-python3 src/ml/train_predict.py
+## Deployment
 
-# Step B: Run IBM Granite Semantic Clustering
-python3 src/granite/cluster_families.py
+Vultr cloud server (Ubuntu 24.04) running one Docker image behind nginx with HTTPS, AI rate limits and strict security
+headers. `deploy/setup_vultr.sh` sets up a fresh server; see [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
-# Step C: Run Automated Contract & Submission Test Suite
-python3 tests/test_tell.py
-```
+## Team
 
-### 3. Launch Streamlit Dashboard
-```bash
-streamlit run src/dashboard/app.py
-```
-*Open your browser at `http://localhost:8501` to view the Tell platform.*
+- **Member 1, data science and prediction:** leakage-safe cohorts, baselines, Logistic Regression and LightGBM, the top 500.
+- **Member 2, IBM Granite and research:** embeddings, the 10 families, historical KEV analysis, out-of-time validation.
+- **Member 3, full stack and deployment:** API, website, Ask Tell assistant, Vultr deployment.
 
----
+Built with IBM Granite (embeddings and watsonx.ai), Google Gemini (MLH), Vultr (MLH), FastAPI, TypeScript and Chart.js.
 
-## 📊 Measured Performance on 2025 Held-Out Cohort
+## Limitations
 
-*Evaluated on 35,289 candidates with 61 positive CISA KEV additions:*
-
-| Strategy / Model | Hits@100 | Hits@250 | Hits@500 | Recall@500 | Lift vs EPSS |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **CVSS 3.1 Severity Baseline** | 4 | 6 | 9 | 14.8% | +12% |
-| **EPSS Point-in-Time Baseline** | 4 | 8 | 8 | 13.1% | Baseline (1.0x) |
-| **Logistic Regression (Balanced)** | 7 | 8 | 11 | 18.0% | +37% |
-| **Public Exploit + EPSS Heuristic** | 8 | 15 | 19 | 31.1% | +137% |
-| **Tell Multi-Signal Ensemble** | **8** | **11** | **14–19** | **23.0%–31.1%** | **+137%** |
-
----
-
-## ☁️ Vultr Cloud Deployment Guide
-
-Tell is engineered to deploy instantly to an **Ubuntu 22.04 / 24.04 Vultr Cloud Compute instance**:
-
-### 1. Launch a Vultr Ubuntu Instance
-- Size: Regular Performance (2 vCPU, 4GB RAM recommended)
-- OS: Ubuntu 22.04 LTS
-
-### 2. One-Command Setup
-SSH into your instance and run:
-```bash
-git clone <your-repo-url> /opt/tell
-cd /opt/tell
-chmod +x deploy/setup_vultr.sh
-./deploy/setup_vultr.sh
-```
-The automated script updates Ubuntu, installs Docker & Compose, configures the UFW firewall, sets up Nginx with WebSocket streaming, and starts the container.
-
----
-
-## 🤝 Team Responsibilities
-
-- **Member 1 (Data Science & Prediction):** Time-safe cohort builder, CVSS/EPSS baselines, Logistic Regression & LightGBM training, leakage auditing, generation of `predictions.csv`, `metrics.csv`, and `top500.csv`.
-- **Member 2 (IBM Granite & Research):** IBM Granite technical feature extraction (`remote_local`, `auth_required`), description embeddings, clustering into 10 behavioral families, exploitation-rate research, generation of `granite_features.csv` and `family_summary.csv`.
-- **Member 3 (Full-Stack, APIs & Cloud Deployment):** Streamlit 5-page enterprise dashboard, Snowflake Cortex REST API client, Google Gemini structured briefs, Evidence Grounding Guard, Vultr Cloud Compute packaging.
-
----
-
-## 📜 Datathon Submission Verification
-
-The submission artifact `results/top500.csv` has been verified via `tests/test_tell.py`:
-- [x] Contains exactly one column: `cve_id`
-- [x] Contains exactly 500 rows
-- [x] Contains 500 unique IDs (zero duplicates)
-- [x] All 500 IDs are valid eligible candidates from `scoreboard_2026.csv`
-- [x] Strictly zero forward-looking data leakage
+The historical sample is KEV-enriched and needs population weighting. Descriptions can contain post-disclosure edits.
+KEV is not a complete record of real-world exploitation. Adding Granite features to the ranking model has not yet been
+shown to help. These are research findings, not exploit probabilities.

@@ -24,7 +24,8 @@ def client():
 
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
-    for k in ("GEMINI_API_KEY", "SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER", "SNOWFLAKE_PAT"):
+    for k in ("GEMINI_API_KEY", "SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER", "SNOWFLAKE_PAT",
+              "IBM_WATSONX_APIKEY", "IBM_WATSONX_PROJECT_ID"):
         monkeypatch.delenv(k, raising=False)
     server._buckets.clear()
     monkeypatch.setattr(server, "AI_BURST", 1e9)  # rate limit off except in its own test
@@ -586,3 +587,36 @@ def test_cortex_reply_parsing():
     sse = 'data: {"choices":[{"delta":{"content":"Hel"}}]}\n\ndata: {"choices":[{"delta":{"content":"lo"}}]}\n\ndata: [DONE]\n'
     assert _cortex_text(R("text/event-stream", sse)) == "Hello"
     assert _cortex_text(R("application/json", '{"choices":[{"message":{"content":"Hi"}}]}')) == "Hi"
+
+
+def test_granite_brief_live_and_fallback(client, monkeypatch):
+    from src.ai import granite_briefs as gb
+
+    class R:
+        def __init__(self, code, body): self.status_code, self._b, self.text = code, body, str(body)
+        def json(self): return self._b
+        def raise_for_status(self): pass
+
+    calls = []
+    def fake_post(url, **kw):
+        calls.append(url)
+        if "iam.cloud.ibm.com" in url:
+            return R(200, {"access_token": "t", "expires_in": 3600})
+        assert kw["json"]["project_id"] == "p" and "ca-tor" in url
+        return R(200, {"choices": [{"message": {"content": "**Summary** from Granite"}}]})
+
+    # not configured -> Gemini/offline path, status says granite off
+    assert client.get("/api/status").json()["granite"] is False
+    monkeypatch.setenv("IBM_WATSONX_APIKEY", "k")
+    monkeypatch.setenv("IBM_WATSONX_PROJECT_ID", "p")
+    monkeypatch.setattr(gb.requests, "post", fake_post)
+    gb._token.update(value=None, exp=0)
+    j = client.post("/api/brief", json={"cve_id": TOP}).json()
+    assert j["source"].startswith("IBM Granite") and "Granite" in j["content"]
+    assert client.get("/api/status").json()["granite"] is True
+
+    # watsonx error -> falls back instead of failing
+    monkeypatch.setattr(gb.requests, "post", lambda url, **kw: R(200, {"access_token": "t"}) if "iam" in url else R(500, {}))
+    gb._token.update(value=None, exp=0)
+    j = client.post("/api/brief", json={"cve_id": TOP}).json()
+    assert not j["source"].startswith("IBM Granite") and j["content"]

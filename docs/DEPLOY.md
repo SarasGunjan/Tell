@@ -33,6 +33,8 @@ Optional overrides: `DOMAIN=tell.example.com EMAIL=you@example.com BRANCH=main b
 
 ## 3. Keys
 From your own machine: `bash deploy/set_secrets.sh`. It asks (hidden) for `GEMINI_API_KEY` (free at aistudio.google.com),
+`IBM_WATSONX_APIKEY` (IBM Cloud: Manage -> Access (IAM) -> API keys) and `IBM_WATSONX_PROJECT_ID` (watsonx.ai project ->
+Manage -> General) so IBM Granite writes the CVE briefs,
 `SNOWFLAKE_ACCOUNT` (`orgname-accountname`), `SNOWFLAKE_USER` and `SNOWFLAKE_PAT` (a programmatic access token from
 Snowsight: user menu -> Settings -> Authentication; passwords don't work with the Cortex REST API), writes them to
 `/opt/tell/.env` over SSH, restarts the app and prints whether Gemini and Snowflake are live. Blank answers keep the

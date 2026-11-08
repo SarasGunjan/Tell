@@ -25,6 +25,8 @@ if str(ROOT) not in sys.path:  # allow `uvicorn src.api.server:app` from anywher
 load_dotenv(ROOT / ".env")
 
 from src.ai import EvidenceGroundingEngine, GeminiBriefGenerator, SnowflakeCortexAssistant  # noqa: E402
+from src.ai import granite_briefs  # noqa: E402
+from src.ai.granite_briefs import granite_brief  # noqa: E402  (watsonx Granite briefs, Gemini fallback)
 from src.api import chat as chat_mod  # noqa: E402
 from src.api.explain import explain as explain_target  # noqa: E402
 from src.api.store import SIGNALS, get_store, waiting_text  # noqa: E402
@@ -158,6 +160,8 @@ def status():
     return {
         "gemini": bool(os.environ.get("GEMINI_API_KEY")),
         "snowflake": SnowflakeCortexAssistant().is_configured,
+        "granite": granite_briefs.configured(),
+        "granite_model": granite_briefs.model_id(),
         "descriptions": s.has_descriptions,
         "model": os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
         "counts": {"cves": int(len(s.df)) if s.has_predictions else None,
@@ -243,7 +247,8 @@ def cve(cve_id: str = PathParam(..., pattern=CVE_PATTERN)):
 def brief(req: BriefReq):
     c = _need_cve(req.cve_id.upper())
     try:
-        out = GeminiBriefGenerator().generate_cve_brief(_ai_ctx(c))
+        ctx = _ai_ctx(c)
+        out = granite_brief(ctx) or GeminiBriefGenerator().generate_cve_brief(ctx)  # IBM Granite first when configured
         content = out["content"]
     except Exception as e:
         logger.warning("brief generation failed (%s)", type(e).__name__)
