@@ -73,11 +73,13 @@ export function mountDashboard(root: HTMLElement): () => void {
       h('div', { class: 'prov-row' }, provenanceTag('model'), h('span', { class: 'muted' }, 'rank (position)'), provenanceTag('snapshot'), h('span', { class: 'muted' }, 'EPSS and exploit code'), provNote),
       stageWrap, srList);
 
-    const bottom = h('div', { class: 'dash-bottom' }, scatterCard(d, store, colors), budgetCard(pts, store, d.ranking_method));
+    const sel = selectionPanel(d, store, colors);
+    const bottom = h('div', { class: 'dash-bottom' }, scatterCard(d, store, colors), budgetCard(pts, store, d.ranking_method), ...sel.charts);
     const layout = h('div', { class: 'dash' },
-      h('div', { class: 'dash-galaxy' }, card, judgeStrip()), // strip right under the galaxy so it stays the hero
+      h('div', { class: 'dash-galaxy' }, card),
       h('div', { class: 'dash-rail-col' }, filtersRail(d, store, colors)),
-      h('div', { class: 'dash-side-col' }, selectionPanel(d, store, colors)),
+      h('div', { class: 'dash-side-col' }, sel.side),
+      h('div', { class: 'dash-strip' }, judgeStrip()), // full-width row right under the galaxy
       bottom);
     stagger(bottom);
     return layout;

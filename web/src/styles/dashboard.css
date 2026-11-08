@@ -1,15 +1,24 @@
 /* Dashboard layout + Threat Galaxy. The galaxy stage stays dark in both themes (a viewport into space). */
-.dash { display: grid; gap: var(--sp-4); grid-template-columns: 240px minmax(0, 1fr) 330px; grid-template-areas: "rail galaxy side" "bottom bottom bottom"; align-items: start; }
-.dash-galaxy { grid-area: galaxy; min-width: 0; display: grid; gap: var(--sp-4); }
-.dash-galaxy .judge-strip { margin-bottom: 0; }
+/* Top row: filters | galaxy | selection, all ending at about the same height; then the three questions full width; then a 2x2 chart grid. */
+.page:has(.dash), body:has(.dash) .topbar-in { max-width: 1560px; } /* the Galaxy page uses wide screens; reading pages keep --page-max */
+.dash { display: grid; gap: var(--sp-4); grid-template-columns: 250px minmax(0, 1fr) 340px; grid-template-areas: "rail galaxy side" "strip strip strip" "bottom bottom bottom"; align-items: start; }
+.dash-galaxy { grid-area: galaxy; min-width: 0; }
 .dash-rail-col { grid-area: rail; min-width: 0; }
 .dash-side-col { grid-area: side; min-width: 0; }
-.dash-bottom { grid-area: bottom; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+.dash-strip { grid-area: strip; min-width: 0; }
+/* side columns stretch to the galaxy's height so the top row ends level (no ragged gap) */
+@media (min-width: 1200px) {
+  .dash-rail-col, .dash-side-col { align-self: stretch; }
+  .dash-rail { height: 100%; align-content: start; }
+  .dash-side { height: 100%; grid-template-rows: auto 1fr; }
+}
+.dash-strip .judge-strip { margin-bottom: 0; }
+.dash-bottom { grid-area: bottom; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); align-items: start; }
 @media (max-width: 1199px) {
-  .dash { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "galaxy galaxy" "rail side" "bottom bottom"; }
+  .dash { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "galaxy galaxy" "strip strip" "rail side" "bottom bottom"; }
 }
 @media (max-width: 700px) {
-  .dash { grid-template-columns: minmax(0, 1fr); grid-template-areas: "galaxy" "rail" "side" "bottom"; }
+  .dash { grid-template-columns: minmax(0, 1fr); grid-template-areas: "galaxy" "strip" "rail" "side" "bottom"; }
   .dash-bottom { grid-template-columns: minmax(0, 1fr); }
 }
 

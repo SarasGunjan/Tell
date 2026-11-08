@@ -23,6 +23,7 @@ button { cursor: pointer; }
 .muted { color: var(--text-3); }
 .pad { padding: var(--sp-3); }
 .sr-only { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+table.sr-only { left: 0; top: 0; } /* tables ignore width:1px; anchor them so they can't widen the page on tablets */
 .skip-link { position: fixed; left: 12px; top: -48px; z-index: 200; background: var(--accent-fill); color: var(--accent-ink); padding: 8px 14px; border-radius: var(--r-sm); text-decoration: none; font-weight: 600; transition: transform var(--dur-fast) var(--ease-out); }
 .skip-link:focus { transform: translateY(60px); }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-xs); }

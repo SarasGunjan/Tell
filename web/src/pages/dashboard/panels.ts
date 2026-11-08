@@ -119,7 +119,8 @@ export function familyFocusCard(d: GalaxyData, store: Store, colors: string[], r
 }
 
 // ------------------------------------------------------------------ selection panel
-export function selectionPanel(d: GalaxyData, store: Store, colors: string[]): HTMLElement {
+// side = KPIs + top list (kept short so it ends level with the galaxy); charts go to the bottom grid
+export function selectionPanel(d: GalaxyData, store: Store, colors: string[]): { side: HTMLElement; charts: HTMLElement[] } {
   const tile = (label: string, kind: Parameters<typeof provenanceTag>[0]) => {
     const v = h('div', { class: 'dkpi-value num' }, '–'), sub = h('div', { class: 'kpi-sub' }, '');
     return { v, sub, el: h('div', { class: 'dkpi' }, h('span', { class: 'label' }, label), v, sub, h('div', { class: 'kpi-foot' }, provenanceTag(kind))) };
@@ -225,7 +226,7 @@ export function selectionPanel(d: GalaxyData, store: Store, colors: string[]): H
   store.subscribe((_s, c) => { if (c.has('filters')) refreshSoon(); else if (c.has('hoverId')) markHover(); });
   refresh();
 
-  return h('div', { class: 'dash-side' }, kpis, listCard, epssCard, sigCard);
+  return { side: h('div', { class: 'dash-side' }, kpis, listCard), charts: [epssCard, sigCard] };
 }
 
 // ------------------------------------------------------------------ scatter: EPSS vs model score
