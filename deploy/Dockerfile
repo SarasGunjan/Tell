@@ -1,40 +1,40 @@
-# Tell Platform - Vultr Cloud Deployment Dockerfile
+# Tell web platform: FastAPI API + built Vite SPA. Build from repo root:
+#   docker build -f deploy/Dockerfile -t tell .
+
+# ---- Stage 1: build the frontend ----
+FROM node:20-alpine AS web
+WORKDIR /web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+RUN npm run build
+
+# ---- Stage 2: runtime ----
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies (build-essential, git, libgomp1 for lightgbm)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
+COPY deploy/requirements-web.txt /tmp/requirements-web.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-web.txt
 
-# Copy requirements
-COPY requirements.txt .
-
-# Install Python packages
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application source, models, results, and docs
-COPY src/ /app/src/
+# server.py resolves ROOT as parents[2] of src/api/server.py -> /app, so dist must be /app/web/dist
+COPY src/__init__.py /app/src/__init__.py
+COPY src/api/ /app/src/api/
+COPY src/ai/ /app/src/ai/
 COPY results/ /app/results/
-COPY models/ /app/models/
-COPY docs/ /app/docs/
-COPY README.md /app/README.md
+COPY --from=web /web/dist /app/web/dist
 
-# Set environment
+RUN useradd --system --no-create-home --uid 10001 tell \
+    && mkdir -p /app/data \
+    && chown -R tell /app
+USER tell
+
 ENV PYTHONPATH=/app \
-    PYTHONUNBUFFERED=1 \
-    STREAMLIT_SERVER_PORT=8501 \
-    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
-    STREAMLIT_SERVER_HEADLESS=true
+    PYTHONUNBUFFERED=1
 
-EXPOSE 8501
+EXPOSE 8000
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8501/_stcore/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/status', timeout=4).status == 200 else 1)"]
 
-# Start Streamlit application
-CMD ["streamlit", "run", "src/dashboard/app.py"]
+CMD ["uvicorn", "src.api.server:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]

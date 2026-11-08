@@ -1,0 +1,146 @@
+/* Tell design tokens. Three layers: primitive -> semantic -> component.
+   Everything in the UI (and Chart.js, via getComputedStyle) reads from here. */
+:root {
+  /* ---- type ---- */
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-base: 0.9375rem;
+  --fs-md: 1.0625rem;
+  --fs-lg: 1.375rem;
+  --fs-xl: clamp(1.625rem, 1.2rem + 1.6vw, 2.25rem);
+  --fs-2xl: clamp(2rem, 1.3rem + 2.8vw, 3.25rem);
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-body: 1.55;
+  --tracking-display: -0.02em;
+  --tracking-title: -0.012em;
+  --tracking-label: 0.06em;
+
+  /* ---- spacing (4px base) ---- */
+  --sp-1: 0.25rem; --sp-2: 0.5rem; --sp-3: 0.75rem; --sp-4: 1rem; --sp-5: 1.5rem;
+  --sp-6: 2rem; --sp-7: 3rem; --sp-8: 4rem;
+  --gutter: clamp(1rem, 0.5rem + 2vw, 2rem);
+  --page-max: 1240px;
+
+  /* ---- radius ---- */
+  --r-xs: 2px; --r-sm: 4px; --r-md: 6px; --r-lg: 8px; --r-pill: 999px;
+
+  /* ---- motion ---- */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-fast: 150ms;
+  --dur-base: 240ms;
+  --dur-slow: 400ms;
+  --stagger: 40ms;
+
+  /* ---- z ---- */
+  --z-nav: 40; --z-pet: 60; --z-dock: 70; --z-scrim: 80; --z-drawer: 90;
+
+  /* ---- layout ---- */
+  --nav-h: 56px;
+}
+
+/* ---- DARK (default): Carbon Gray 100 deepened toward space ---- */
+:root, :root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0d14;
+  --bg-sunken: #07090e;
+  --surface-1: #13161f;
+  --surface-2: #1b1f2b;
+  --surface-3: #242938;
+  --line: #2a2f3d;
+  --line-strong: #3a4152;
+  --line-input: #6f7a91;
+  --text: #f4f4f4;
+  --text-2: #c6c6c6;
+  --text-3: #9a9a9a;
+  --accent: #78a9ff;          /* Blue 40: links, focus, active marks on dark */
+  --accent-strong: #a6c8ff;   /* Blue 30 */
+  --accent-fill: #0f62fe;     /* Blue 60: filled buttons */
+  --accent-fill-hover: #0353e9;
+  --accent-ink: #ffffff;      /* text on --accent-fill */
+  --accent-soft: rgb(120 169 255 / 0.14);
+  --focus: #78a9ff;
+  --highlight: #f1c21b;       /* Yellow 30: Crafternauta, used sparingly */
+
+  /* data: Carbon dark categorical. Order = a..h. Fixed meaning: top = Tell, all = baseline, risk = high-risk */
+  --data-top: #78a9ff;
+  --data-all: #6f6f6f;
+  --data-risk: #fa4d56;
+  --data-a: #8a3ffc;
+  --data-b: #33b1ff;
+  --data-c: #007d79;
+  --data-d: #ff7eb6;
+  --data-e: #fa4d56;
+  --data-f: #6fdc8c;
+  --data-g: #4589ff;
+  --data-h: #d2a106;
+  --grid: rgb(255 255 255 / 0.07);
+
+  /* provenance */
+  --prov-observed: #42be65;
+  --prov-model: #78a9ff;
+  --prov-ai: #be95ff;
+  --ok: #42be65; --warn: #f1c21b; --bad: #ff8389; --info: #4589ff;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.28);
+  --shadow-2: 0 8px 24px rgb(0 0 0 / 0.4);
+  --shadow-3: 0 24px 64px rgb(0 0 0 / 0.55);
+  --scrim: rgb(5 7 11 / 0.6);
+  --glass: rgb(11 13 20 / 0.8);
+}
+
+/* ---- LIGHT: Carbon White / Gray 10, Blue 60 accent ---- */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f4f4;
+  --bg-sunken: #ececf0;
+  --surface-1: #ffffff;
+  --surface-2: #f4f5f8;
+  --surface-3: #e8eaf0;
+  --line: #e0e0e0;
+  --line-strong: #c6c6c6;
+  --line-input: #7d7d7d;
+  --text: #161616;
+  --text-2: #525252;
+  --text-3: #636363;
+  --accent: #0f62fe;
+  --accent-strong: #0043ce;
+  --accent-fill: #0f62fe;
+  --accent-fill-hover: #0353e9;
+  --accent-ink: #ffffff;
+  --accent-soft: rgb(15 98 254 / 0.1);
+  --focus: #0f62fe;
+  --highlight: #b28600;
+
+  --data-top: #0f62fe;
+  --data-all: #8d8d8d;
+  --data-risk: #da1e28;
+  --data-a: #6929c4;
+  --data-b: #1192e8;
+  --data-c: #005d5d;
+  --data-d: #9f1853;
+  --data-e: #fa4d56;
+  --data-f: #198038;
+  --data-g: #002d9c;
+  --data-h: #b28600;
+  --grid: rgb(22 22 22 / 0.08);
+
+  --prov-observed: #198038;
+  --prov-model: #0f62fe;
+  --prov-ai: #6929c4;
+  --ok: #198038; --warn: #8e6a00; --bad: #da1e28; --info: #0043ce;
+
+  --shadow-1: 0 1px 2px rgb(22 22 22 / 0.08);
+  --shadow-2: 0 8px 24px rgb(22 22 22 / 0.12);
+  --shadow-3: 0 24px 64px rgb(22 22 22 / 0.2);
+  --scrim: rgb(22 22 22 / 0.4);
+  --glass: rgb(244 244 244 / 0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 100ms; --dur-base: 150ms; --dur-slow: 1ms; --stagger: 0ms; }
+}

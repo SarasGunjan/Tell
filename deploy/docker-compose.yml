@@ -1,31 +1,38 @@
-version: '3.8'
-
 services:
-  tell-app:
+  tell:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    container_name: tell-intelligence-platform
+    container_name: tell
     restart: unless-stopped
     ports:
-      - "8501:8501"
+      - "127.0.0.1:8000:8000"   # only host nginx is public
+    env_file:
+      - path: ../.env           # secrets stay server-side; needs Compose >= 2.24 for required: false
+        required: false
     environment:
-      - TELL_ENV=production
-      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
-      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
-      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
-      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE:-COMPUTE_WH}
-      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE:-TELL_SECURITY}
-      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA:-INTELLIGENCE}
-      - SNOWFLAKE_CORTEX_MODEL=${SNOWFLAKE_CORTEX_MODEL:-mistral-large2}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-flash}
+      THREATRANK_DATA_DIR: /app/data
+      TELL_RESULTS_DIR: /app/results
+      TELL_DATA_LABEL: ${TELL_DATA_LABEL:-demo}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+    volumes:
+      # new CSVs dropped here go live via hot reload, no rebuild
+      - ../results:/app/results:ro
+      - ../data:/app/data:ro
+
+  # Old Streamlit dashboard: docker compose -f deploy/docker-compose.yml --profile streamlit up -d streamlit
+  streamlit:
+    profiles: ["streamlit"]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.streamlit
+    container_name: tell-streamlit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8501:8501"
+    env_file:
+      - path: ../.env
+        required: false
     volumes:
       - ../results:/app/results:ro
       - ../data:/app/data:ro
-    networks:
-      - tell-net
-
-networks:
-  tell-net:
-    driver: bridge

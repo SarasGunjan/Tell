@@ -1,0 +1,15 @@
+.git
+.venv
+venv
+node_modules
+web/node_modules
+web/dist
+data/
+.env
+*.pyc
+__pycache__
+.pytest_cache
+models/
+docs/
+.claude
+.impeccable

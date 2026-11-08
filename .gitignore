@@ -31,3 +31,7 @@ data/*.csv
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Web frontend
+node_modules/
+web/dist/
