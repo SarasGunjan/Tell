@@ -45,15 +45,18 @@ function render(r: Research): HTMLElement {
   const tp = r.temporal;
   if (tp) {
     const d = tp.data, hd = d.headline, rows = d.rows;
+    // fit on 2024 only: ids are separate from the 10 main families, so label them as clusters
+    const cl = (id: string) => `2024 cluster ${id}`;
     sections.push(section('research-temporal', 'Act 2 · Does it hold out of time?', `Rank on ${d.train_year ?? '2024'}, check on ${d.val_year ?? '2025'}`, tp.provenance, tp.cohort_label,
-      hd ? h('div', { class: 'big-stat' }, stat('Share of 2025 KEVs', fmtPct(hd.kev_share), `${hd.val_kev_top3} of ${hd.val_kev_total}`), stat('Share of 2025 CVEs', fmtPct(hd.volume_share), `${fmtInt(hd.val_n_top3)} of ${fmtInt(hd.val_n_total)}`), stat('Enrichment', `${hd.lift.toFixed(2)}×`, `top 3 by ${d.train_year ?? '2024'} rate: ${hd.top3_family_ids.map(nameOf).join(', ')}`)) : null,
+      hd ? h('div', { class: 'big-stat' }, stat('Share of 2025 KEVs', fmtPct(hd.kev_share), `${hd.val_kev_top3} of ${hd.val_kev_total}`), stat('Share of 2025 CVEs', fmtPct(hd.volume_share), `${fmtInt(hd.val_n_top3)} of ${fmtInt(hd.val_n_total)}`), stat('Enrichment', `${hd.lift.toFixed(2)}×`, `top 3 by ${d.train_year ?? '2024'} rate: ${hd.top3_family_ids.map(cl).join(', ')}`)) : null,
+      h('p', { class: 'muted' }, 'These clusters were fit on 2024 CVEs only, so they are separate from the 10 families used everywhere else. That keeps the check honest: nothing from 2025 shaped them.'),
       hd && hd.matches_reported !== null ? h('p', { class: 'muted' }, hd.matches_reported ? 'Computed from the per-family file and matches the figures reported in research_metrics.json.' : 'Computed from the per-family file; it differs from research_metrics.json.') : null,
       chartCard({
-        target: 'research-temporal-chart', title: 'Lift by family: training year vs validation year', subtitle: 'Sample lift within the research cohort', provenance: 'observed', height: 300,
-        summary: `Per-family lift in ${d.train_year} and ${d.val_year}.`,
-        table: { head: ['Family', 'Train rate', 'Train lift', 'Val rate', 'Val lift'], rows: rows.map((x) => [nameOf(x.family_id), fmtPct(x.train_2024_rate), x.train_2024_lift, fmtPct(x.val_2025_rate), x.val_2025_lift]) },
+        target: 'research-temporal-chart', title: 'Lift by 2024 cluster: training year vs validation year', subtitle: 'Sample lift within the research cohort', provenance: 'observed', height: 300,
+        summary: `Per-cluster lift in ${d.train_year} and ${d.val_year}.`,
+        table: { head: ['2024 cluster', 'Train rate', 'Train lift', 'Val rate', 'Val lift'], rows: rows.map((x) => [cl(x.family_id), fmtPct(x.train_2024_rate), x.train_2024_lift, fmtPct(x.val_2025_rate), x.val_2025_lift]) },
         build: (t: Theme) => ({ type: 'bar' as const,
-          data: { labels: rows.map((x) => wrap(`${x.family_id} · ${nameOf(x.family_id)}`)), datasets: [
+          data: { labels: rows.map((x) => cl(x.family_id)), datasets: [
             { label: `${d.train_year} (train)`, data: rows.map((x) => x.train_2024_lift), backgroundColor: t.all, borderRadius: 3 },
             { label: `${d.val_year} (validation)`, data: rows.map((x) => x.val_2025_lift), backgroundColor: t.top, borderRadius: 3 }] },
           options: { ...baseOptions(t), plugins: { ...(baseOptions(t).plugins as object), tooltip: tip(t) },

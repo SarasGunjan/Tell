@@ -122,7 +122,9 @@ def build_research(raw: Dict[str, Optional[pd.DataFrame]], meta: Optional[Dict[s
 
     if temp is not None:
         t = _num(temp.copy())
-        t["family_name"] = t["family_id"].map(names)
+        # These clusters were fit on 2024 CVEs only, so their ids are NOT the 10 main families; never borrow those names.
+        cluster = lambda f: f"2024 cluster {f}"  # noqa: E731
+        t["family_name"] = t["family_id"].map(cluster)
         ranked = t.sort_values(["train_2024_rate", "family_id"], ascending=[False, True], kind="stable")
         top3 = ranked.head(3)
         tot_kev, tot_n = float(t["val_2025_kev"].sum()), float(t["val_2025_n"].sum())
@@ -138,15 +140,16 @@ def build_research(raw: Dict[str, Optional[pd.DataFrame]], meta: Optional[Dict[s
                 matches = (abs(ks - reported["kev_share"]) < 5e-4 and abs(vs - reported["volume_share"]) < 5e-4
                            and abs(ks / vs - reported["lift"]) < 5e-3)
             head = {"top3_family_ids": top3["family_id"].tolist(),
-                    "top3_family_names": [names.get(f) for f in top3["family_id"]],
+                    "top3_family_names": [cluster(f) for f in top3["family_id"]],
                     "ranked_by": "train_2024_rate", "kev_share": ks, "volume_share": vs, "lift": ks / vs,
                     "val_kev_top3": int(top3["val_2025_kev"].sum()), "val_kev_total": int(tot_kev),
                     "val_n_top3": int(top3["val_2025_n"].sum()), "val_n_total": int(tot_n),
                     "reported": reported, "matches_reported": matches}
         out["temporal"] = block({"rows": _rows(t), "headline": head, "train_year": years[0] if years else None,
                                  "val_year": years[-1] if years else None}, PROV_SAMPLE,
-                                note="Families are ranked on 2024 data only, then checked on 2025 CVEs "
-                                     "(out-of-time). Rates here are sample rates.")
+                                note="Granite clusters are fit on 2024 CVEs only and ranked by their 2024 KEV rate, "
+                                     "then checked on 2025 CVEs (out-of-time). These 2024 clusters are separate from "
+                                     "the 10 main families. Rates here are sample rates.")
 
     if cwe is not None:
         c = _num(cwe.copy())

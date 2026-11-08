@@ -274,9 +274,10 @@ def _research_facts(store: Store, target: str) -> Dict[str, Any]:
         h = t["headline"]
         return dict(
             title="Out-of-time validation",
-            shows="Families ranked on 2024 data only, then checked on 2025 CVEs the ranking never saw.",
-            read="If the 2024 top three still hold a large share of 2025 KEVs, the pattern persisted.",
-            takeaway="The 2024 top three families hold %s of 2025 KEVs with %s of 2025 CVEs, a %.2fx enrichment."
+            shows="Granite clusters fit on 2024 CVEs only (separate from the 10 main families), ranked by "
+                  "their 2024 KEV rate, then checked on 2025 CVEs they never saw.",
+            read="If the top three 2024 clusters still hold a large share of 2025 KEVs, the pattern persisted.",
+            takeaway="The top three 2024 clusters hold %s of 2025 KEVs with %s of 2025 CVEs, a %.2fx enrichment."
                      % (_pct(h["kev_share"]), _pct(h["volume_share"]), h["lift"]),
             caveat="Sample rates from the research cohort: " + cap,
             data=dict(kev_share=_pct(h["kev_share"]), volume_share=_pct(h["volume_share"]), lift=round(h["lift"], 2)))
