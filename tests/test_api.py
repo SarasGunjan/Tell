@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.api import chat as chat_mod  # noqa: E402
+from src.api import server  # noqa: E402
 from src.api.server import app  # noqa: E402
 
 TOP = "CVE-2026-8037"  # rank 1 in results/predictions.csv
@@ -25,6 +26,18 @@ def client():
 def offline(monkeypatch):
     for k in ("GEMINI_API_KEY", "SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER", "SNOWFLAKE_PASSWORD"):
         monkeypatch.delenv(k, raising=False)
+    server._buckets.clear()
+    monkeypatch.setattr(server, "AI_BURST", 1e9)  # rate limit off except in its own test
+
+
+def test_ai_rate_limit_and_security_headers(client, monkeypatch):
+    monkeypatch.setattr(server, "AI_BURST", 5.0)
+    codes = [client.post("/api/explain", json={"target": "kpi-hits500", "page": "o"}).status_code
+             for _ in range(7)]
+    assert codes[:5] == [200] * 5 and codes[-1] == 429
+    h = client.get("/api/status").headers
+    assert h["x-content-type-options"] == "nosniff"
+    assert "frame-ancestors 'self' https://huggingface.co" in h["content-security-policy"]
 
 
 def test_status(client):

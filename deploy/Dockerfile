@@ -26,7 +26,8 @@ COPY results/ /app/results/
 COPY outputs/granite/ /app/outputs/granite/
 COPY --from=web /web/dist /app/web/dist
 
-RUN useradd --system --no-create-home --uid 10001 tell \
+# uid 1000: Hugging Face Spaces runs containers as this user
+RUN useradd --no-create-home --uid 1000 tell \
     && mkdir -p /app/data \
     && chown -R tell /app
 USER tell

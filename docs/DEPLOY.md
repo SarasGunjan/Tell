@@ -1,4 +1,16 @@
-# Deploying Tell on Vultr
+# Deploying Tell
+
+## Free: Hugging Face Spaces (current)
+1. Make a free account at huggingface.co, then create a token with "Write" access (Settings -> Access Tokens).
+2. Sign in on the deploying machine: `.venv/bin/hf auth login` (paste the token there, never in chat or git).
+3. Deploy or update: `.venv/bin/python deploy/push_hf_space.py` (Space `<you>/tell`; pass `owner/name` to change it).
+4. Optional live AI: Space Settings -> Variables and secrets -> New secret `GEMINI_API_KEY`.
+
+The app is served at `https://<you>-tell.hf.space` after a 3-5 min build. AI endpoints are rate-limited
+in the app (5 burst, 10/min per IP) because Spaces has no nginx. A free Space sleeps after about 48 h with
+no visits and wakes on the next one. `data/vulnerabilities.csv` is not uploaded, so CVE descriptions stay off.
+
+## Paid: Vultr
 
 Stack: host nginx (80/443, rate limits, TLS) -> Docker container `tell` on 127.0.0.1:8000 (FastAPI + built SPA).
 
@@ -8,7 +20,7 @@ Vultr Cloud Compute, Ubuntu 24.04, at least 2 GB RAM (use 4 GB if you upload `vu
 ## 2. Install
 ```bash
 ssh root@<IP>
-curl -fsSL https://raw.githubusercontent.com/SarasGunjan/ThreatRank/feature/web-frontend/deploy/setup_vultr.sh | bash
+curl -fsSL https://raw.githubusercontent.com/SarasGunjan/Tell/feature/web-frontend/deploy/setup_vultr.sh | bash
 ```
 This only works once the branch is pushed to GitHub. Alternative:
 ```bash

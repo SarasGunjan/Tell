@@ -3,12 +3,13 @@ import logging
 import mimetypes
 import os
 import sys
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Path as PathParam, Query
+from fastapi import FastAPI, HTTPException, Path as PathParam, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -56,6 +57,42 @@ app = FastAPI(title="Tell API", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"],
                    allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Hosts without nginx (Hugging Face Spaces) still need the AI rate limit and security headers.
+# ponytail: in-memory per-process buckets; fine for one worker, use Redis if scaled out.
+AI_PATHS = {"/api/chat", "/api/explain", "/api/brief", "/api/ask"}
+AI_BURST, AI_PER_SEC = 5.0, 10 / 60  # same as nginx tell_ai: 10r/m burst 5
+_buckets = {}  # type: Dict[str, List[float]]  ip -> [tokens, last_time]
+CSP = ("default-src 'self'; script-src 'self' 'sha256-9qO35WyoQ2Naa30o+9uiD/H3E07ZORby30nr3m1RVoE='; "
+       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; "
+       "img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; "
+       "frame-ancestors 'self' https://huggingface.co; form-action 'self'")
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Content-Security-Policy": CSP,
+}
+
+
+def _allow_ai(ip: str) -> bool:
+    now = time.monotonic()
+    tokens, last = _buckets.get(ip, [AI_BURST, now])
+    tokens = min(AI_BURST, tokens + (now - last) * AI_PER_SEC)
+    ok = tokens >= 1
+    _buckets[ip] = [tokens - 1 if ok else tokens, now]
+    return ok
+
+
+@app.middleware("http")
+async def guard(request: Request, call_next):
+    if request.url.path in AI_PATHS and request.method == "POST":
+        if not _allow_ai(request.client.host if request.client else "?"):
+            return JSONResponse({"detail": "Too many AI requests. Try again in a few seconds."}, status_code=429)
+    resp = await call_next(request)
+    for k, v in SECURITY_HEADERS.items():
+        resp.headers.setdefault(k, v)
+    return resp
 
 
 # ------------------------------------------------------------------ models
