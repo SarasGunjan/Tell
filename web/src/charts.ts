@@ -1,5 +1,5 @@
 import {
-  Chart, BarController, LineController, BubbleController,
+  Chart, BarController, LineController, BubbleController, ScatterController,
   CategoryScale, LinearScale, LogarithmicScale,
   BarElement, LineElement, PointElement, Tooltip, Legend,
   type ChartConfiguration,
@@ -8,7 +8,7 @@ import { h, reducedMotion } from './util';
 import { explainButton } from './components/explain';
 import { state } from './state';
 
-Chart.register(BarController, LineController, BubbleController, CategoryScale, LinearScale, LogarithmicScale,
+Chart.register(BarController, LineController, BubbleController, ScatterController, CategoryScale, LinearScale, LogarithmicScale,
   BarElement, LineElement, PointElement, Tooltip, Legend);
 
 export type Theme = {

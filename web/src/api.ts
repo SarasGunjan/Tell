@@ -25,7 +25,7 @@ export type Grounding = {
   target_cve: string; grounding_score: number; status_label: string;
   checks: GroundingCheck[]; hallucinations: string[]; is_grounded: boolean;
 };
-export type PageId = 'overview' | 'top500' | 'families' | 'models' | 'analyst';
+export type PageId = 'dashboard' | 'overview' | 'top500' | 'families' | 'models' | 'analyst';
 export type Action =
   | { type: 'navigate'; page: PageId }
   | { type: 'open_cve'; cve_id: string }
@@ -38,10 +38,19 @@ export type StatusFile = {
   name: string; owner: 'Member 1' | 'Member 2'; present: boolean; rows: number | null; columns: string[];
   missing_required: string[]; modified: string | null; optional?: boolean;
 };
+export type GalaxyFamily = { family_id: string; family_name: string | null; high_risk: boolean | null };
+/** Columnar payload for the Threat Galaxy: every array has length n and is ordered by model rank. */
+export type Galaxy =
+  | { available: false; waiting: string }
+  | {
+      available: true; n: number; ids: string[]; rank: number[]; score: number[]; epss: number[];
+      fam: number[]; sig: number[]; top500: number[]; families: GalaxyFamily[]; signals_available: string[];
+      ranking_method: string; x?: (number | null)[]; y?: (number | null)[];
+    };
 export type Status = {
   gemini: boolean; snowflake: boolean; descriptions: boolean; model: string;
   counts: { cves: number | null; top500: number | null; families: number | null };
-  data_label: 'demo' | 'final'; results_dir: string; top500_source: 'file' | 'derived' | null; files: StatusFile[];
+  ranking_method: string; data_label: 'demo' | 'final'; results_dir: string; top500_source: 'file' | 'derived' | null; files: StatusFile[];
 };
 export type Overview = {
   total_cves: number | null; top500_count: number | null; family_count: number | null; positives_2025: number | null;
@@ -116,6 +125,7 @@ export function cveQueryString(q: CveQuery): string {
 
 export const api = {
   status: () => req<Status>('/api/status'),
+  galaxy: () => cached<Galaxy>('/api/galaxy'),
   overview: () => cached<Overview>('/api/overview'),
   metrics: () => cached<Metric[]>('/api/metrics'),
   distributions: () => cached<Distributions>('/api/distributions'),

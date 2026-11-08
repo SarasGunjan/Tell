@@ -2,6 +2,7 @@ import type { PageId } from './api';
 import { state, emit } from './state';
 import { destroyAllCharts } from './charts';
 import { clear, reducedMotion } from './util';
+import { mountDashboard } from './pages/dashboard';
 import { mountOverview } from './pages/overview';
 import { mountTop500 } from './pages/top500';
 import { mountFamilies } from './pages/families';
@@ -10,6 +11,7 @@ import { mountAnalyst } from './pages/analyst';
 
 type Mount = (root: HTMLElement) => void | (() => void);
 export const PAGES: { id: PageId; label: string; title: string; mount: Mount }[] = [
+  { id: 'dashboard', label: 'Dashboard', title: 'Dashboard', mount: mountDashboard },
   { id: 'overview', label: 'Overview', title: 'Overview', mount: mountOverview },
   { id: 'top500', label: 'Top 500', title: 'Top 500', mount: mountTop500 },
   { id: 'families', label: 'Families', title: 'Families', mount: mountFamilies },
@@ -23,12 +25,13 @@ let cleanup: (() => void) | null = null;
 let current: PageId | null = null;
 
 export function navigate(page: PageId): void {
-  if (location.hash === `#/${page}`) { if (current !== page) void show(page); return; }
+  if (pathOf() === page) { if (current !== page) void show(page); return; }
   location.hash = `#/${page}`;
 }
+const pathOf = (): string => /^#\/([a-z0-9]+)/.exec(location.hash)?.[1] ?? '';
 const fromHash = (): PageId => {
-  const m = /^#\/([a-z0-9]+)/.exec(location.hash);
-  return m && ids.has(m[1]) ? (m[1] as PageId) : 'overview';
+  const p = pathOf();
+  return ids.has(p) ? (p as PageId) : 'dashboard';
 };
 
 async function show(page: PageId): Promise<void> {

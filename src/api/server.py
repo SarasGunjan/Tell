@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Path as PathParam, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
@@ -54,6 +55,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Tell API", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"],
                    allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 # ------------------------------------------------------------------ models
@@ -123,6 +125,7 @@ def status():
         "counts": {"cves": int(len(s.df)) if s.has_predictions else None,
                    "top500": int(len(s.top500_df)) if s.has_predictions else None,
                    "families": int(len(s.fam_summary)) if s.fam_summary is not None else None},
+        "ranking_method": s.ranking_method,
         "data_label": s.label,
         "results_dir": s.results_rel,
         "top500_source": s.top500_source,
@@ -143,6 +146,11 @@ def metrics():
 @app.get("/api/distributions")
 def distributions():
     return get_store().distributions
+
+
+@app.get("/api/galaxy")
+def galaxy():
+    return get_store().galaxy()
 
 
 @app.get("/api/families")

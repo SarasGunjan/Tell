@@ -36,6 +36,12 @@
   --dur-slow: 400ms;
   --stagger: 40ms;
 
+  /* ---- galaxy: a viewport into space, same in both themes ---- */
+  --space-bg: #05070d;
+  --galaxy-1: #be95ff; --galaxy-2: #33b1ff; --galaxy-3: #08bdba; --galaxy-4: #ff7eb6; --galaxy-5: #ff8389;
+  --galaxy-6: #6fdc8c; --galaxy-7: #ff832b; --galaxy-8: #4589ff; --galaxy-9: #d2a106; --galaxy-10: #a2a9b0;
+  --galaxy-unknown: #6f6f6f;
+
   /* ---- z ---- */
   --z-nav: 40; --z-pet: 60; --z-dock: 70; --z-scrim: 80; --z-drawer: 90;
 

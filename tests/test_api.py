@@ -31,6 +31,7 @@ def test_status(client):
     j = client.get("/api/status").json()
     assert j["gemini"] is False and j["snowflake"] is False
     assert j["counts"] == {"cves": 72670, "top500": 500, "families": 10}
+    assert j["ranking_method"]
     assert "api_key" not in str(j).lower()
 
 
@@ -235,6 +236,21 @@ def test_explain_gemini_rephrase_guard(client, monkeypatch):
     ex._cache.clear()
 
 
+def test_galaxy_shape_and_bitmask(client):
+    j = client.get("/api/galaxy").json()
+    assert j["available"] is True and j["n"] == 72670
+    for k in ("ids", "rank", "score", "epss", "fam", "sig", "top500"):
+        assert len(j[k]) == j["n"], k
+    assert j["ids"][0] == TOP and j["rank"] == sorted(j["rank"]) and j["rank"][0] == 1
+    assert sum(j["top500"]) == 500 and all(i == -1 or 0 <= i < len(j["families"]) for i in j["fam"])
+    assert set(j["families"][0]) == {"family_id", "family_name", "high_risk"}
+    c = client.get("/api/cves/" + TOP).json()  # rank 1: exploitdb, metasploit, poc_github
+    want = c["exploitdb"] * 1 + c["metasploit"] * 2 + c["nuclei"] * 4 + c["poc_github"] * 8
+    assert j["sig"][0] == want and want > 0
+    assert j["score"][0] == round(c["prediction_score"], 4)
+    assert "x" not in j and "y" not in j  # real results carry no embedding columns
+
+
 def test_unknown_api_route(client):
     assert client.get("/api/nope").status_code == 404
 
@@ -306,6 +322,27 @@ def test_missing_predictions_degrade(client, tell_dir):
     assert "waiting on Member 1's predictions.csv" in e["text"]
     c = client.post("/api/chat", json={"messages": [{"role": "user", "content": "CVE-2026-0001"}]}).json()
     assert "waiting on Member 1's predictions.csv" in c["reply"]
+
+
+def test_galaxy_waiting_without_predictions(client, tell_dir):
+    j = client.get("/api/galaxy").json()
+    assert j["available"] is False and "predictions.csv" in j["waiting"]
+
+
+def test_galaxy_missing_signals_flagged(client, tell_dir):
+    _drop(tell_dir, predictions__csv=PRED.format(score="prediction_score"))
+    j = client.get("/api/galaxy").json()
+    assert j["n"] == 3 and j["sig"] == [0, 0, 0] and j["signals_available"] == [] and j["fam"] == [-1, -1, -1]
+
+
+def test_galaxy_embedding_optional(client, tell_dir):
+    _drop(tell_dir, predictions__csv=PRED.format(score="prediction_score"), granite_features__csv=GRANITE)
+    assert "x" not in client.get("/api/galaxy").json()
+    g = GRANITE.replace("auth_required\n", "auth_required,umap_x,umap_y\n").replace("NONE\n", "NONE,0.5,-1.25\n")
+    _drop(tell_dir, granite_features__csv=g)
+    j = client.get("/api/galaxy").json()
+    assert j["x"] == [0.5, None, None] and j["y"] == [-1.25, None, None]
+    assert "emb_x" not in client.get("/api/cves/CVE-2026-0001").json()
 
 
 def test_families_from_granite_joined_with_summary(client, tell_dir):

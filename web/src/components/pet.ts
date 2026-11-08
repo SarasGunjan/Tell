@@ -365,6 +365,8 @@ export function mountPet(app: HTMLElement): void {
     } finally { root.removeAttribute('aria-busy'); }
   }
 
+  // coach marks etc.: walk to an element without opening a bubble
+  bus.addEventListener('pet:goto', ((e: CustomEvent<{ el: HTMLElement }>) => { if (!saved.min && e.detail.el.isConnected) void walkTo(e.detail.el); }) as EventListener);
   bus.addEventListener('pet:explain', ((e: CustomEvent<{ target: string; source: 'button' | 'chat' | 'hover' }>) => void explain(e.detail.target, e.detail.source)) as EventListener);
   bus.addEventListener('chat:busy', ((e: CustomEvent<{ on: boolean; failed?: boolean }>) => {
     setMood(e.detail.on ? 'wait' : 'idle');

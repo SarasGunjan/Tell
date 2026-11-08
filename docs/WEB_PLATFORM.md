@@ -13,6 +13,7 @@ Teammates finish their parts and drop files into the results folder; the site pi
 | `metrics.csv` (alias `model_comparison.csv`) | Member 1 | `model, hits_100, hits_250, hits_500` | `precision_*, recall_*, roc_auc, pr_auc` | Model Evaluation shows "not computed yet"; derived columns hidden, never invented |
 | `top500.csv` | Member 1 | `cve_id` | — | derived from `predictions` rank ≤ 500 and labelled as derived |
 | `granite_features.csv` / `families.csv` | Member 2 | `cve_id, family_id` (+ `remote_local, auth_required` in granite_features) | `family_name, attack_type` | CVEs show "family: not computed yet"; Families page shows waiting state |
+| optional columns in `families.csv` / `granite_features.csv` | Member 2 | — | numeric pair `x,y` (or `umap_x,umap_y` / `emb_x,emb_y`): 2-D projection of the IBM Granite embeddings | `/api/galaxy` adds arrays `x`,`y`; the Dashboard offers a "Semantic map" layout (hidden when absent) |
 | `family_summary.csv` | Member 2 | `family_id, family_name, family_size` | `hist_kev_rate, avg_epss_2026, high_risk, key_traits` | Families page shows waiting state; missing optional columns hide their chart |
 
 - Folder: `TELL_RESULTS_DIR` (default `results/`). Point it at `mock_data/` to test the UI.
@@ -83,6 +84,7 @@ type Action =                                   // UI actions the chatbot/pet ma
 | `GET /api/distributions` | `{ score_hist:{edges:number[],all:number[],top500:number[]}, epss_hist:{…same}, published_by_month:{months:string[],all:number[],top500:number[]}, remote_local:{label,count}[], auth_required:{label,count}[] }` — computed once at startup |
 | `GET /api/families` | `Family[]` |
 | `GET /api/families/{id}` | `{ family: Family, top_cves: CVE[20], in_top500: number, signal_counts }` 404 if unknown |
+| `GET /api/galaxy` | `{ available, n, ids[], rank[], score[], epss[], fam[] (index into families, -1 unknown), sig[] (bitmask exploitdb=1 metasploit=2 nuclei=4 poc_github=8), top500[] (0/1), families:[{family_id,family_name,high_risk}], signals_available[], x?[], y?[] }` columnar, ordered by rank, gzip. `{available:false, waiting}` when predictions are missing. `x`,`y` only when Member 2 supplies an embedding projection |
 | `GET /api/cves?q=&family_id=&min_epss=&signals=metasploit,nuclei&scope=top500\|all&sort=rank\|epss\|score&limit=50&offset=0` | `{ total, items: CVE[] }` (limit ≤ 200; q matches cve_id or description, case-insensitive) |
 | `GET /api/cves/{cve_id}` | `CVE` 404 if unknown |
 | `POST /api/brief` `{cve_id}` | `{ source, model, content(md), grounding: Grounding }` via `GeminiBriefGenerator` |
@@ -98,7 +100,7 @@ Gemini function calling (`tools.functionDeclarations`) over the read endpoints: 
 Send the Gemini key as header `x-goog-api-key`, not in the URL.
 
 ### Highlight targets (shared ids between pet, chat, and DOM `data-explain` attrs)
-`kpi-candidates, kpi-hits500, kpi-lift, chart-score-dist, chart-epss-dist, chart-signals, chart-published, chart-family-size, chart-family-kev, chart-family-bubble, chart-hits, chart-precision-recall, table-auc, table-top500, panel-cve, panel-brief, panel-grounding`
+`kpi-candidates, kpi-hits500, kpi-lift, chart-score-dist, chart-epss-dist, chart-signals, chart-published, chart-family-size, chart-family-kev, chart-family-bubble, chart-hits, chart-precision-recall, table-auc, table-top500, panel-cve, panel-brief, panel-grounding, chart-galaxy, dash-kpis, chart-scatter, chart-budget`
 
 `/api/explain` builds its text from the target's real data (e.g. `chart-family-kev` → reads family_summary). Offline: deterministic template from the same numbers.
 
@@ -106,6 +108,7 @@ Send the Gemini key as header `x-goog-api-key`, not in the URL.
 
 | Page | Contents (Chart.js) |
 |---|---|
+| Dashboard (default) | Threat Galaxy (canvas; one star per CVE; layouts Galaxy / Chart / Semantic map driven by `web/src/pages/dashboard/encodings.ts`), filters rail, live selection panel, EPSS-vs-score scatter, patch-budget lines; filters live in the URL hash (`#/dashboard?fam=FAM-02&sig=metasploit&view=rows`) |
 | Overview | KPI tiles; score distribution (top500 vs all, log y); EPSS distribution; exploit-signal prevalence top500 vs all; published-by-month |
 | Top 500 | filter bar (search, family, min EPSS, signal chips); virtual/paged table; CVE drawer (fields, signals, family, description, provenance labels, "Brief" + "Ask" buttons) |
 | Families | family size bar; historical KEV rate bar; bubble (size × KEV rate × avg EPSS); family detail panel w/ top CVEs |

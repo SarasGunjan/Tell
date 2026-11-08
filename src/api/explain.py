@@ -210,6 +210,48 @@ def _facts(store: Store, target: str) -> Dict[str, Any]:
             takeaway="A green result means every checkable claim matched the data.",
             caveat="It only checks claims it can match to the data, not everything the AI says.",
             data={})
+    if target == "chart-galaxy":
+        d = store.galaxy()
+        sig = sum(1 for x in d["sig"] if x)
+        return dict(
+            title="Threat Galaxy",
+            shows="Every scored CVE as a star. Colour is its family, size is EPSS, and the closer to the centre, the higher the current ranking method (%s) ranks it." % store.ranking_method,
+            read="Bright stars with a glow are the Top 500; twinkling stars have public exploit code. Rings mark the Top 100, 250 and 500 cut-offs.",
+            takeaway="%s CVEs are plotted; %d are in the Top 500 and %s (%s) have at least one public exploit signal."
+                     % (_n(d["n"]), n_top, _n(sig), _pct(sig / d["n"])),
+            caveat="Position is a rank from the current ranking method, not a calibrated probability and not confirmed exploitation.",
+            data=dict(total=d["n"], top500=n_top, with_signal=sig, share_with_signal=_pct(sig / d["n"])))
+    if target == "dash-kpis":
+        return dict(
+            title="Selection summary",
+            shows="Live counts for whatever the filters on the left currently select: CVEs matching, how many are Top 500, share with exploit signals and median EPSS.",
+            read="Change the scope, family, signals or minimum EPSS and the tiles update straight away.",
+            takeaway="With no filters, %s CVEs are selected, %d of them in the Top 500; median EPSS is %.4f across all CVEs."
+                     % (_n(n_all), n_top, st["epss_q_all"][0.5]),
+            caveat="Counts are from the 2026 snapshot; ranks are predictions.",
+            data=dict(total=n_all, top500=n_top, median_epss=round(st["epss_q_all"][0.5], 4)))
+    if target == "chart-scatter":
+        return dict(
+            title="EPSS versus model score",
+            shows="Each dot is a CVE: EPSS (log scale) across, ranking score up. All Top 500 CVEs plus a fixed 4,000-CVE sample of the rest.",
+            read="Dots high on the chart are ranked high by the current method; dots to the right already have high EPSS.",
+            takeaway="The Top 500 score at least %.2f, while the median score across all CVEs is %.2f."
+                     % (st["score_min_top500"], st["score_q_all"][0.5]),
+            caveat="The sample is for readability only; EPSS is a snapshot signal and the ranking score is not a probability.",
+            data=dict(min_top500=round(st["score_min_top500"], 2), median_all=round(st["score_q_all"][0.5], 2)))
+    if target == "chart-budget":
+        parts = []
+        for k in (100, 250, 500):
+            b = _best(m, "hits_%d" % k)
+            parts.append("K=%d: %s (%d)" % (k, b["model"], b["hits_%d" % k]))
+        return dict(
+            title="Patch budget",
+            shows="How many real KEV additions each model catches if a team can only review the top K CVEs (historical backtest). Only budgets 100, 250 and 500 were measured.",
+            read="Lines that climb faster catch more true positives for the same review effort.",
+            takeaway="Leaders by budget - " + "; ".join(parts) + ". Tell ensemble: %d, %d and %d."
+                     % (tell["hits_100"], tell["hits_250"], tell["hits_500"]),
+            caveat="About %d positives only, so differences of a hit or two are noise." % o["positives_2025"],
+            data=dict(leaders=parts))
     raise KeyError(target)
 
 
@@ -248,7 +290,7 @@ def _rephrase(f: Dict[str, Any]) -> Optional[str]:
 
 _NEEDS = {"kpi-hits500": "metrics", "kpi-lift": "metrics", "chart-hits": "metrics",
           "chart-precision-recall": "metrics", "table-auc": "metrics", "chart-family-size": "families",
-          "chart-family-kev": "families", "chart-family-bubble": "families"}
+          "chart-family-kev": "families", "chart-family-bubble": "families", "chart-budget": "metrics"}
 
 
 def explain(store: Store, target: str, page: str) -> Optional[Dict[str, Any]]:

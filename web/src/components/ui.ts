@@ -1,4 +1,4 @@
-import { familyWaiting } from '../state';
+import { familyWaiting, emit } from '../state';
 import { h, clear, setMarkdown, fmtPct, fmtEpss, fmtScore, SIGNALS, stagger, reducedMotion } from '../util';
 import type { CVE, Grounding, AiSource } from '../api';
 import { ApiError } from '../api';
@@ -143,7 +143,8 @@ export function groundingReport(g: Grounding, withTarget = true): HTMLElement {
 }
 
 export function cveMiniCard(c: CVE, onOpen: (id: string) => void): HTMLElement {
-  return h('button', { type: 'button', class: 'cve-mini', onClick: () => onOpen(c.cve_id) },
+  return h('button', { type: 'button', class: 'cve-mini', onClick: () => onOpen(c.cve_id),
+    onPointerEnter: () => emit('cve:hover', c.cve_id), onPointerLeave: () => emit('cve:hover', null), onFocus: () => emit('cve:hover', c.cve_id), onBlur: () => emit('cve:hover', null) },
     h('span', { class: 'cve-mini-top' }, h('span', { class: 'mono' }, c.cve_id), h('span', { class: 'rank num' }, `#${c.rank}`)),
     h('span', { class: 'cve-mini-meta' }, familyLabel(c.family_name, 'Unassigned family')),
     h('span', { class: 'cve-mini-foot' }, signalDots(c), h('span', { class: 'num muted' }, `score ${fmtScore(c.prediction_score)} · EPSS ${fmtEpss(c.epss)}`)));

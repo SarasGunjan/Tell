@@ -26,6 +26,7 @@ OUT_COLS = [
     "remote_local", "auth_required", "attack_type", "description", "cvss3_score",
     "attack_vector", "cwe_ids",
 ]
+EMBED_PAIRS = [("x", "y"), ("umap_x", "umap_y"), ("emb_x", "emb_y")]
 PRED_OPTIONAL = SIGNALS + ["published", "snapshot_month"]
 FAM_COLS = ["family_id", "family_name", "family_size", "hist_kev_rate", "avg_epss_2026", "high_risk", "key_traits"]
 METRIC_COLS = [
@@ -33,6 +34,7 @@ METRIC_COLS = [
     "hits_500", "precision_500", "recall_500", "roc_auc", "pr_auc",
 ]
 SORTS = {"rank": ("rank", True), "epss": ("epss", False), "score": ("prediction_score", False)}
+DEFAULT_RANKING_METHOD = "Public Code + EPSS"
 RELOAD_INTERVAL = 2.0  # seconds between results-file stat checks
 
 # key -> spec. `names`: accepted filenames (first = canonical). `cols`: column aliases.
@@ -154,6 +156,13 @@ class Store:
             if c not in preds.columns:
                 preds[c] = np.nan if c in SIGNALS else None
         self.signals_available = [s for s in SIGNALS if self.has_predictions and preds[s].notna().any()]
+        # name of the current ranking method: env override > a column in predictions > default. Never a probability.
+        method = DEFAULT_RANKING_METHOD
+        for c in ("ranking_method", "method"):
+            if c in preds.columns and preds[c].notna().any():
+                method = str(preds[c].dropna().iloc[0])
+                break
+        self.ranking_method = os.environ.get("TELL_RANKING_METHOD", "").strip() or method
 
         # ---- top500
         t5 = raw["top500"]
@@ -191,7 +200,15 @@ class Store:
             for c in ("family_name", "remote_local", "auth_required", "attack_type"):
                 if c not in fam.columns:
                     fam[c] = None
-            fam = fam[["cve_id", "family_id", "family_name", "remote_local", "auth_required", "attack_type"]]
+            keep = ["cve_id", "family_id", "family_name", "remote_local", "auth_required", "attack_type"]
+            for cx, cy in EMBED_PAIRS:  # optional Granite embedding projection (Member 2)
+                if cx in fam.columns and cy in fam.columns:
+                    ex, ey = pd.to_numeric(fam[cx], errors="coerce"), pd.to_numeric(fam[cy], errors="coerce")
+                    if ex.notna().any() and ey.notna().any():
+                        fam = fam.assign(emb_x=ex, emb_y=ey)
+                        keep += ["emb_x", "emb_y"]
+                        break
+            fam = fam[keep]
         else:
             fam = pd.DataFrame(columns=["cve_id", "family_id", "family_name", "remote_local", "auth_required",
                                         "attack_type"])
@@ -329,6 +346,54 @@ class Store:
             "epss_lt_001_all": float((df["epss"] < 0.01).mean()),
             "epss_lt_001_top500": float((top["epss"] < 0.01).mean()) if len(top) else None,
         }
+
+    @staticmethod
+    def _embedding(df: pd.DataFrame) -> Dict[str, Any]:
+        if "emb_x" not in df.columns:
+            return {}
+        out = {}
+        for k, c in (("x", "emb_x"), ("y", "emb_y")):
+            col = df[c]
+            out[k] = col.round(4).astype(object).where(col.notna(), None).tolist()
+        return out
+
+    def galaxy(self) -> Dict[str, Any]:
+        """Columnar payload for the dashboard galaxy; computed once per Store (a reload builds a new Store)."""
+        if getattr(self, "_galaxy", None) is not None:
+            return self._galaxy
+        if not self.has_predictions or self.df.empty:
+            out = {"available": False, "waiting": waiting_text("predictions")}  # type: Dict[str, Any]
+        else:
+            df = self.df  # sorted by rank
+            fdf = df[["family_id", "family_name"]].dropna(subset=["family_id"]).drop_duplicates("family_id")
+            fdf = fdf.sort_values("family_id")
+            hr = {}
+            if self.fam_summary is not None:
+                for r in self.fam_summary.itertuples():
+                    hr[r.family_id] = None if pd.isna(r.high_risk) else bool(r.high_risk)
+            fams = [{"family_id": r.family_id, "family_name": None if pd.isna(r.family_name) else r.family_name,
+                     "high_risk": hr.get(r.family_id)} for r in fdf.itertuples()]
+            idx = {f["family_id"]: i for i, f in enumerate(fams)}
+            sig = np.zeros(len(df), dtype=int)
+            for bit, s in enumerate(SIGNALS):
+                sig |= (df[s].fillna(0).to_numpy() > 0).astype(int) << bit
+            out = {
+                "available": True,
+                "n": int(len(df)),
+                "ids": df["cve_id"].tolist(),
+                "rank": df["rank"].astype(int).tolist(),
+                "score": df["prediction_score"].round(4).tolist(),
+                "epss": df["epss"].fillna(0).round(5).tolist(),
+                "fam": [idx.get(f, -1) if isinstance(f, str) else -1 for f in df["family_id"]],
+                "sig": sig.tolist(),
+                "top500": df["in_top500"].astype(int).tolist(),
+                "families": fams,
+                **self._embedding(df),
+                "ranking_method": self.ranking_method,
+                "signals_available": list(self.signals_available),  # bit order: exploitdb=1 metasploit=2 nuclei=4 poc_github=8
+            }
+        self._galaxy = out
+        return out
 
     # ---------- public helpers ----------
     @property

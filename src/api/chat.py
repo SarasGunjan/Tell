@@ -21,6 +21,7 @@ HIGHLIGHT_TARGETS = [
     "chart-signals", "chart-published", "chart-family-size", "chart-family-kev",
     "chart-family-bubble", "chart-hits", "chart-precision-recall", "table-auc",
     "table-top500", "panel-cve", "panel-brief", "panel-grounding",
+    "chart-galaxy", "dash-kpis", "chart-scatter", "chart-budget",
 ]
 CVE_RE = re.compile(r"CVE-\d{4}-\d{4,7}", re.IGNORECASE)
 GEMINI_TIMEOUT = 12

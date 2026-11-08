@@ -109,9 +109,9 @@ export function mountTop500(root: HTMLElement): () => void {
 }
 
 /** Slider is log-scaled because EPSS is heavily skewed: 0 = any, 1..100 -> 0.01% .. 100%. */
-const fromSlider = (p: number) => (p <= 0 ? 0 : 10 ** (-4 + p / 25));
-const toSlider = (v: number) => (v <= 0 ? 0 : Math.round(Math.min(100, Math.max(1, (Math.log10(v) + 4) * 25))));
-const fmtEpssSlider = (v: number) => (v <= 0 ? 'any' : `≥ ${fmtEpss(v)}`);
+export const fromSlider = (p: number) => (p <= 0 ? 0 : 10 ** (-4 + p / 25));
+export const toSlider = (v: number) => (v <= 0 ? 0 : Math.round(Math.min(100, Math.max(1, (Math.log10(v) + 4) * 25))));
+export const fmtEpssSlider = (v: number) => (v <= 0 ? 'any' : `≥ ${fmtEpss(v)}`);
 const field = (label: string, id: string, ctl: Node) => h('div', { class: 'field' }, h('label', { for: id }, label), ctl);
 
 function table(items: CVE[], animate: boolean): HTMLElement {

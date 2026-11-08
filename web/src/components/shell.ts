@@ -133,7 +133,7 @@ export function buildShell(root: HTMLElement): HTMLElement {
     PAGES.map((p) => h('a', { href: `#/${p.id}`, 'data-nav': p.id }, p.label)));
   const header = h('header', { class: 'topbar' },
     h('div', { class: 'topbar-in' },
-      h('a', { class: 'brand', href: '#/overview', 'aria-label': 'Tell home', title: 'Every attack has a tell.' },
+      h('a', { class: 'brand', href: '#/dashboard', 'aria-label': 'Tell home', title: 'Every attack has a tell.' },
         h('span', { class: 'brand-mark', 'aria-hidden': 'true' }), h('span', { class: 'brand-name' }, 'Tell')),
       nav,
       h('div', { class: 'topbar-tools' }, statusPill(), themeToggle())));
