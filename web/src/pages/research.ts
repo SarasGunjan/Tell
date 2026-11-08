@@ -98,7 +98,7 @@ function render(r: Research): HTMLElement {
 }
 
 export function mountResearch(root: HTMLElement): void {
-  root.appendChild(pageHead('Research Discoveries', 'What IBM Granite embeddings found in 2,500 historical CVEs: where exploitation concentrates and whether it holds up out of time.'));
+  root.appendChild(pageHead('Discoveries', 'What IBM Granite embeddings found in 2,500 historical CVEs: where exploitation concentrates and whether it holds up out of time.'));
   const host = h('div', { class: 'page-host' });
   root.appendChild(host);
   void loadInto(host, () => api.research(), render, skeleton(6, true));

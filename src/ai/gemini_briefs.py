@@ -19,7 +19,7 @@ logger = logging.getLogger("Tell.GeminiBriefs")
 class GeminiBriefGenerator:
     def __init__(self):
         self.api_key = os.environ.get("GEMINI_API_KEY", "")
-        self.model = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+        self.model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         self.is_configured = bool(self.api_key)
 
         if self.is_configured:
@@ -33,7 +33,8 @@ class GeminiBriefGenerator:
         """
         if self.is_configured:
             try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+                # Key goes in a header, not the URL, so it never lands in logs or tracebacks
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
                 prompt = (
                     "You are a Senior Vulnerability Intelligence Analyst at Tell. "
                     "Write a crisp, evidence-grounded security brief for this vulnerability. "
@@ -48,11 +49,12 @@ class GeminiBriefGenerator:
                     }],
                     "generationConfig": {
                         "temperature": 0.2,
-                        "maxOutputTokens": 600
+                        "maxOutputTokens": 600,
+                        "thinkingConfig": {"thinkingBudget": 0}
                     }
                 }
 
-                resp = requests.post(url, json=payload, timeout=8)
+                resp = requests.post(url, json=payload, headers={"x-goog-api-key": self.api_key}, timeout=12)
                 if resp.status_code == 200:
                     data = resp.json()
                     brief_text = data["candidates"][0]["content"]["parts"][0]["text"]

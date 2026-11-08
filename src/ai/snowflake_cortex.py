@@ -15,6 +15,22 @@ import logging
 import requests
 from typing import Dict, Any, List
 
+
+def _cortex_text(resp) -> str:
+    """Reply text from Cortex inference:complete, which answers as JSON or as a server-sent event stream."""
+    if "text/event-stream" not in resp.headers.get("Content-Type", ""):
+        return resp.json().get("choices", [{}])[0].get("message", {}).get("content", "") or ""
+    parts = []
+    for line in resp.text.splitlines():
+        if not line.startswith("data:") or line.strip() == "data: [DONE]":
+            continue
+        try:
+            choice = json.loads(line[5:]).get("choices", [{}])[0]
+        except ValueError:
+            continue
+        parts.append((choice.get("delta") or choice.get("message") or {}).get("content") or "")
+    return "".join(parts)
+
 logger = logging.getLogger("Tell.SnowflakeCortex")
 
 
@@ -22,13 +38,13 @@ class SnowflakeCortexAssistant:
     def __init__(self):
         self.account = os.environ.get("SNOWFLAKE_ACCOUNT", "")
         self.user = os.environ.get("SNOWFLAKE_USER", "")
-        self.password = os.environ.get("SNOWFLAKE_PASSWORD", "")
+        self.token = os.environ.get("SNOWFLAKE_PAT", "")  # programmatic access token; passwords are not accepted by the REST API
         self.warehouse = os.environ.get("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH")
         self.database = os.environ.get("SNOWFLAKE_DATABASE", "TELL_SECURITY")
         self.schema = os.environ.get("SNOWFLAKE_SCHEMA", "INTELLIGENCE")
         self.model = os.environ.get("SNOWFLAKE_CORTEX_MODEL", "mistral-large2")
 
-        self.is_configured = bool(self.account and self.user and self.password)
+        self.is_configured = bool(self.account and self.token) and not self.account.startswith("your_")
         if self.is_configured:
             logger.info(f"Snowflake Cortex API configured with account {self.account}, model {self.model}")
         else:
@@ -40,13 +56,14 @@ class SnowflakeCortexAssistant:
         """
         if self.is_configured:
             try:
-                # Snowflake Cortex REST endpoint format:
-                # https://<account_identifier>.snowflakecomputing.com/api/v2/cortex/complete
-                url = f"https://{self.account}.snowflakecomputing.com/api/v2/cortex/complete"
+                # Cortex REST API: https://<orgname-accountname>.snowflakecomputing.com/api/v2/cortex/inference:complete
+                # Auth is a programmatic access token (Snowsight: user menu -> Settings -> Authentication).
+                url = f"https://{self.account}.snowflakecomputing.com/api/v2/cortex/inference:complete"
                 headers = {
                     "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "Authorization": f"Basic {self._get_basic_auth()}"
+                    "Accept": "application/json, text/event-stream",
+                    "Authorization": f"Bearer {self.token}",
+                    "X-Snowflake-Authorization-Token-Type": "PROGRAMMATIC_ACCESS_TOKEN",
                 }
                 system_instruction = (
                     "You are Tell AI, an expert cybersecurity threat prioritization intelligence assistant. "
@@ -66,27 +83,22 @@ class SnowflakeCortexAssistant:
                     "max_tokens": 600
                 }
 
-                resp = requests.post(url, headers=headers, json=payload, timeout=8)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    response_text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                resp = requests.post(url, headers=headers, json=payload, timeout=15)
+                response_text = _cortex_text(resp) if resp.status_code == 200 else ""
+                if response_text:
                     return {
                         "source": "Snowflake Cortex REST API (Live)",
                         "model": self.model,
                         "response": response_text
                     }
                 else:
-                    logger.warning(f"Snowflake API returned {resp.status_code}: {resp.text}. Falling back to Grounded Engine.")
+                    logger.warning(f"Snowflake API returned {resp.status_code}: {resp.text[:300]}. Falling back to Grounded Engine.")
             except Exception as e:
                 logger.warning(f"Error connecting to Snowflake Cortex API: {e}. Falling back to Grounded Engine.")
 
         # Grounded Reasoning Simulator (Offline / Datathon Judging Mode)
         return self._generate_grounded_response(prompt, cve_context)
 
-    def _get_basic_auth(self) -> str:
-        import base64
-        token = f"{self.user}:{self.password}"
-        return base64.b64encode(token.encode()).decode()
 
     def _generate_grounded_response(self, prompt: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
         """

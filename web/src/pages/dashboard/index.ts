@@ -11,8 +11,9 @@ import { prepare } from './data';
 import { createStore } from './state';
 import { createGalaxy } from './galaxy';
 import { createCoach } from './coach';
+import { judgeStrip } from './judge';
 import { ENCODINGS, type Layout } from './encodings';
-import { filtersRail, selectionPanel, scatterCard, budgetCard } from './panels';
+import { filtersRail, selectionPanel, scatterCard, budgetCard, familyFocusCard } from './panels';
 
 function galaxyColors(): string[] {
   const cs = getComputedStyle(document.documentElement);
@@ -21,7 +22,7 @@ function galaxyColors(): string[] {
 
 export function mountDashboard(root: HTMLElement): () => void {
   const cleanups: (() => void)[] = [];
-  root.appendChild(pageHead('Dashboard', 'Every CVE on the 2026 scoreboard as a star, grouped into IBM Granite families. Filter, pick a family, and watch every panel follow.'));
+  root.appendChild(pageHead('Galaxy', 'Every CVE on the 2026 scoreboard as a star, grouped into IBM Granite families. Filter, pick a family, and watch every panel follow.'));
   const host = h('div', { class: 'page-host' });
   root.appendChild(host);
 
@@ -39,7 +40,7 @@ export function mountDashboard(root: HTMLElement): () => void {
     cleanups.push(() => bus.removeEventListener('cve:hover', onCve));
 
     // layout toggle (Semantic map only when the API supplied x,y)
-    const layouts: Layout[] = ['spiral', 'rows', ...(d.pos.embedding ? (['embedding'] as Layout[]) : [])];
+    const layouts: Layout[] = ['spiral', ...(d.hasFamilies ? (['split'] as Layout[]) : []), 'rows', ...(d.pos.embedding ? (['embedding'] as Layout[]) : [])];
     const segs = layouts.map((l) => h('button', { type: 'button', class: 'seg', onClick: () => store.set({ view: l }) }, ENCODINGS.layouts[l].label));
     const provNote = h('span', { class: 'chip', hidden: true });
     const paintView = () => {
@@ -51,7 +52,7 @@ export function mountDashboard(root: HTMLElement): () => void {
     paintView();
 
     const help = h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'How to read this', title: 'How to read this', 'aria-expanded': 'false' }, '?');
-    const stageWrap = h('div', { class: 'galaxy-wrap' }, view.el);
+    const stageWrap = h('div', { class: 'galaxy-wrap' }, view.el, familyFocusCard(d, store, colors, () => view.el.querySelector('canvas')?.focus({ preventScroll: true })));
     const coach = createCoach(stageWrap, view.spots, help, d.n);
     help.addEventListener('click', () => coach.open());
     cleanups.push(coach.destroy);
@@ -67,14 +68,14 @@ export function mountDashboard(root: HTMLElement): () => void {
     const card = h('section', { class: 'card galaxy-card', 'data-explain': 'chart-galaxy', 'aria-label': 'Threat Galaxy' },
       h('header', { class: 'card-head' },
         h('div', {}, h('h2', { class: 'card-title' }, 'Threat Galaxy'),
-          h('p', { class: 'card-sub' }, `${fmtInt(d.n)} CVEs · ranking method: ${d.ranking_method}. Scroll to zoom, drag to pan, double-click to reset.`)),
+          h('p', { class: 'card-sub' }, `${fmtInt(d.n)} CVEs · ranking method: ${d.ranking_method}. Scroll to zoom, drag to pan, double-click to reset. Tap a star to focus its family, tap again to open it.`)),
         h('div', { class: 'card-tools' }, h('div', { class: 'seg-group', role: 'group', 'aria-label': 'Layout' }, segs), help, explainButton('chart-galaxy', 'Threat Galaxy'))),
       h('div', { class: 'prov-row' }, provenanceTag('model'), h('span', { class: 'muted' }, 'rank (position)'), provenanceTag('snapshot'), h('span', { class: 'muted' }, 'EPSS and exploit code'), provNote),
       stageWrap, srList);
 
     const bottom = h('div', { class: 'dash-bottom' }, scatterCard(d, store, colors), budgetCard(pts, store, d.ranking_method));
     const layout = h('div', { class: 'dash' },
-      h('div', { class: 'dash-galaxy' }, card),
+      h('div', { class: 'dash-galaxy' }, card, judgeStrip()), // strip right under the galaxy so it stays the hero
       h('div', { class: 'dash-rail-col' }, filtersRail(d, store, colors)),
       h('div', { class: 'dash-side-col' }, selectionPanel(d, store, colors)),
       bottom);

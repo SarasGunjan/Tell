@@ -109,6 +109,9 @@ function render(famsRaw: Family[], caption: string | null): HTMLElement {
   const list = h('section', { class: 'card', 'aria-label': 'Family list' },
     h('div', { class: 'card-head' }, h('div', {}, h('h3', { class: 'card-title' }, 'All families'), h('p', { class: 'card-sub' }, `${BASIS}. Historical family patterns, not the probability for any 2026 CVE.`)), h('div', { class: 'card-tools' }, provenanceTag('observed'), toggle)),
     listHost);
+  // deep link from the Galaxy focus card: #/families?fam=FAM-02
+  const want = new URLSearchParams(location.hash.split('?')[1] ?? '').get('fam');
+  if (want && famsRaw.some((f) => f.family_id === want)) requestAnimationFrame(() => select(want));
   return h('div', { class: 'page-stack' }, grid, detail, list);
 }
 

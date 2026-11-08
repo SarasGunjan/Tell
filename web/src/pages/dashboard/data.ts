@@ -16,9 +16,12 @@ export const TWIST = ENCODINGS.arm.twist;
 export const radiusOfIndex = (i: number, n: number): number => R_MIN + (1 - R_MIN) * Math.pow(n > 1 ? i / (n - 1) : 0, RADIUS_EXP);
 
 export type Pos = { x: Float32Array; y: Float32Array };
+/** Split layout: one cluster per family slot (last slot = unknown family, only when present), 2 columns, row-major. */
+export type SplitGeom = { cx: Float32Array; cy: Float32Array; r: number; slots: number };
 export type GalaxyData = GalaxyOk & {
   hash: Uint32Array; rad: Float32Array; // rad = star radius in px at 1x
-  pos: { spiral: Pos; rows: Pos; embedding: Pos | null };
+  pos: { spiral: Pos; split: Pos; rows: Pos; embedding: Pos | null };
+  split: SplitGeom;
   epssA: Float32Array; sigA: Uint8Array; famA: Int16Array; topA: Uint8Array;
   idx: Map<string, number>; nFam: number; hasFamilies: boolean;
 };
@@ -76,11 +79,23 @@ export function prepare(g: GalaxyOk): GalaxyData {
     rx[i] = ROWS_X0 + (ROWS_X1 - ROWS_X0) * (Math.log(Math.max(1, g.rank[i])) / lg);
     ry[i] = (rows > 1 ? -0.78 + slot * rowH : 0) + (mix(hash[i], 4) - 0.5) * rowH * 0.72;
   }
+  // split: each family its own mini-galaxy; distance from the cluster centre = rank within the family
+  const hasUnk = famA.some((x) => x < 0), S = Math.max(1, F + (hasUnk ? 1 : 0)), sRows = Math.ceil(S / 2), pitchY = 2 / sRows;
+  const sr = Math.min(0.17, pitchY * 0.46), scx = new Float32Array(S), scy = new Float32Array(S);
+  for (let k = 0; k < S; k++) { scx[k] = -1 + sr + (k % 2) * 1.04; scy[k] = -1 + (Math.floor(k / 2) + 0.5) * pitchY; }
+  const slotOf = (i: number) => (famA[i] >= 0 && famA[i] < F ? famA[i] : Math.min(F, S - 1)), cnt = new Int32Array(S), seen = new Int32Array(S);
+  for (let i = 0; i < n; i++) cnt[slotOf(i)]++;
+  const sx = new Float32Array(n), sy = new Float32Array(n);
+  for (let i = 0; i < n; i++) { // data arrives in rank order, so the k-th star of a slot is its k-th ranked
+    const s = slotOf(i), m = cnt[s], t = m > 1 ? seen[s]++ / (m - 1) : (seen[s]++, 0), rr = sr * (0.08 + 0.92 * Math.pow(t, RADIUS_EXP));
+    const a = (mix(hash[i], 5) < 0.5 ? 0 : Math.PI) + TWIST * (rr / sr) + (mix(hash[i], 1) + mix(hash[i], 2) - 1) * 0.3;
+    sx[i] = scx[s] + rr * Math.cos(a); sy[i] = scy[s] + rr * Math.sin(a);
+  }
   let emb: Pos | null = null;
   const gx = (g as { x?: (number | null)[] }).x, gy = (g as { y?: (number | null)[] }).y;
   if (gx && gy) emb = normalizeEmbedding(gx, gy, ux, uy);
   const base = { ...g, hash, rad, epssA, sigA, famA, topA, idx, nFam: F, hasFamilies: F > 0 && famA.some((x) => x >= 0) };
-  const d = { ...base, pos: { spiral: { x: ux, y: uy }, rows: { x: rx, y: ry }, embedding: emb } } as GalaxyData;
+  const d = { ...base, split: { cx: scx, cy: scy, r: sr, slots: S }, pos: { spiral: { x: ux, y: uy }, split: { x: sx, y: sy }, rows: { x: rx, y: ry }, embedding: emb } } as GalaxyData;
   for (let i = 0; i < n; i++) rad[i] = ENCODINGS.size.px(d, i);
   return d;
 }

@@ -77,7 +77,7 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
   const tw = sprite(48, '#ffffff', true);
 
   // ---- current star positions (tweened between layouts) + spatial grid over them
-  const posOf = (l: Layout) => (l === 'embedding' && d.pos.embedding ? d.pos.embedding : l === 'rows' ? d.pos.rows : d.pos.spiral);
+  const posOf = (l: Layout) => (l === 'embedding' && d.pos.embedding ? d.pos.embedding : l === 'rows' ? d.pos.rows : l === 'split' ? d.pos.split : d.pos.spiral);
   let lay: Layout = store.state.view;
   const px = Float32Array.from(posOf(lay).x), py = Float32Array.from(posOf(lay).y);
   const gw = Math.ceil((2 * E) / GRID);
@@ -96,7 +96,10 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
   const spins = () => lay === 'spiral' && !tween;
   function switchLayout(next: Layout): void {
     if (next === lay) return;
-    lay = next;
+    const prev = lay;
+    lay = next; label(); splitDirty = true;
+    if (prev === 'split' || next === 'split') resetView(); // cluster zoom/pan only means something inside Split
+    if (next === 'split') legend.removeAttribute('open'); // the open legend would cover the bottom-left clusters; the user can reopen it
     const to = posOf(next);
     if (rm.matches) { px.set(to.x); py.set(to.y); angle = 0; buildGrid(); setHover(-1, false); bmpDirty = true; frameDirty = true; schedule(); paintLegend(); return; }
     tween = { t0: -1, fx: px.slice(), fy: py.slice(), to, a0: angle, a1: next === 'spiral' ? angle : angle > Math.PI ? Math.PI * 2 : 0 };
@@ -110,7 +113,7 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
   let zoom = 1, panX = 0, panY = 0, angle = 0;
   let bmp: HTMLCanvasElement | null = null, bs = 1;
   let bmpDirty = true, frameDirty = true, rerenderAt = 0;
-  let hoverIdx = -1, tipIdx = -1, kbPos = -1;
+  let hoverIdx = -1, tipIdx = -1, kbPos = -1, hintIdx = -1, hintTouch = false, viewAnim = 0;
   let ptr: { x: number; y: number; type: string } | null = null;
   let twList: number[] = [];
   let visible = true, raf = 0, last = 0, frame = 0, destroyed = false;
@@ -210,7 +213,8 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
       h('div', { class: 'gt-row muted' }, `Ranking method: ${d.ranking_method}`),
       h('div', { class: 'gt-row' }, sigs.length ? sigs.join(', ') : 'No public exploit signal'),
       h('div', { class: 'gt-row' }, h('i', { class: 'swatch', style: `background:${colorOf(d.famA[i])}`, 'aria-hidden': 'true' }), fam ?? (familyWaiting() ? 'Family: not computed yet' : 'Unassigned family')),
-      h('div', { class: 'gt-prov' }, provenanceTag('model'), provenanceTag('snapshot')));
+      h('div', { class: 'gt-prov' }, provenanceTag('model'), provenanceTag('snapshot')),
+      ...(hintIdx === i ? [h('div', { class: 'gt-hint' }, hintTouch ? 'Tap again to open details' : 'Click again to open details')] : []));
     tip.hidden = false;
   }
   function placeTip(): void {
@@ -223,6 +227,7 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
   }
   function setHover(i: number, withTip: boolean): void {
     hoverIdx = i;
+    if (i !== hintIdx) hintIdx = -1;
     showTip(withTip ? i : -1);
     store.set({ hoverId: i >= 0 ? d.ids[i] : null });
     canvas.style.cursor = i >= 0 ? 'pointer' : drag ? 'grabbing' : 'grab';
@@ -233,8 +238,65 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
   function ringPos(rank: number): number { return radiusOfIndex(rank - 1, n); }
   const fontSans = () => getComputedStyle(document.documentElement).getPropertyValue('--font-sans') || 'sans-serif';
   const famTotals = (() => { const c = new Array(d.nFam + 1).fill(0); for (let i = 0; i < n; i++) c[d.famA[i] >= 0 ? d.famA[i] : d.nFam]++; return c as number[]; })();
+  // ---- Split layout: per-cluster labels. Counts/wrapped names are cached; they only change with filters or width.
+  const nSlot = d.split.slots, sl = new Int16Array(n);
+  const sTot = new Int32Array(nSlot), sTopTot = new Int32Array(nSlot), sMat = new Int32Array(nSlot), sTopMat = new Int32Array(nSlot);
+  for (let i = 0; i < n; i++) { const s = d.famA[i] >= 0 && d.famA[i] < d.nFam ? d.famA[i] : Math.min(d.nFam, nSlot - 1); sl[i] = s; sTot[s]++; if (d.topA[i]) sTopTot[s]++; }
+  const splitTxt = Array.from({ length: nSlot }, () => ({ a: '', b: '' }));
+  const wrapC: ({ w: number; f: string; lines: string[] } | undefined)[] = new Array(nSlot).fill(undefined);
+  let splitDirty = true;
+  const slotName = (s: number) => (s < d.nFam ? d.families[s].family_name ?? d.families[s].family_id : 'Unassigned');
+  function calcSplit(): void {
+    sMat.fill(0); sTopMat.fill(0);
+    const m = match();
+    for (let i = 0; i < n; i++) if (m[i]) { sMat[sl[i]]++; if (d.topA[i]) sTopMat[sl[i]]++; }
+    // one rule: "x of y" when a filter narrows the family, plain total otherwise
+    for (let s = 0; s < nSlot; s++) {
+      splitTxt[s].a = sMat[s] === sTot[s] ? `${fmtInt(sTot[s])} CVEs` : `${fmtInt(sMat[s])} of ${fmtInt(sTot[s])} CVEs`;
+      splitTxt[s].b = sTopMat[s] === sTopTot[s] ? `${fmtInt(sTopTot[s])} in Top 500` : `${fmtInt(sTopMat[s])} of ${fmtInt(sTopTot[s])} in Top 500`;
+    }
+    splitDirty = false;
+  }
+  function wrapName(s: number, maxW: number, font: string): string[] {
+    const c = wrapC[s];
+    if (c && c.w === maxW && c.f === font) return c.lines;
+    const lines: string[] = []; let cur = '';
+    for (const wd of slotName(s).split(' ')) { const t = cur ? `${cur} ${wd}` : wd; if (cur && ctx.measureText(t).width > maxW) { lines.push(cur); cur = wd; } else cur = t; }
+    lines.push(cur);
+    if (lines.length > 2) { let l2 = lines.slice(1).join(' '); while (l2.length > 3 && ctx.measureText(`${l2}…`).width > maxW) l2 = l2.slice(0, -1); lines.length = 1; lines.push(`${l2.trimEnd()}…`); }
+    wrapC[s] = { w: maxW, f: font, lines };
+    return lines;
+  }
+  /** Shorten `t` with an ellipsis until it fits `maxW` in the current ctx font (keeps labels inside narrow stages). */
+  function fit(t: string, maxW: number): string {
+    if (ctx.measureText(t).width <= maxW) return t;
+    while (t.length > 3 && ctx.measureText(`${t}…`).width > maxW) t = t.slice(0, -1);
+    return `${t.trimEnd()}…`;
+  }
+  function drawSplit(): void {
+    if (splitDirty) calcSplit();
+    const g = d.split, u = U(), x0 = w / 2 + panX, y0 = hgt / 2 + panY, fs = u < 200 ? 10 : 11, lh = fs + 3.5, maxW = Math.max(40, Math.min(0.55 * u, 210)), foc = store.state.familyIdx;
+    const fB = `600 ${fs}px ${fontSans()}`, fR = `400 ${fs}px ${fontSans()}`;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.lineWidth = 1;
+    for (let s = 0; s < nSlot; s++) {
+      const x = x0 + u * g.cx[s], y = y0 + u * g.cy[s], r = g.r * u * 1.12;
+      if (x + r + maxW + 16 < 0 || x - r > w || y + r < 0 || y - r > hgt) continue;
+      ctx.globalAlpha = foc !== null && foc !== s ? 0.45 : 1;
+      ctx.setLineDash([2, 4]); ctx.strokeStyle = s === foc ? 'rgba(166,200,255,0.75)' : 'rgba(160,178,220,0.22)';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+      ctx.font = fB;
+      const tx = x + r + 8, room = Math.max(36, w - (w <= 420 ? 44 : 6) - tx), lines = wrapName(s, Math.min(maxW, room), fB).map((ln) => fit(ln, room));
+      let ty = y - ((lines.length + 2) * lh) / 2;
+      ctx.fillStyle = s < d.nFam ? colors[s % (colors.length - 1)] : colors[colors.length - 1];
+      for (const ln of lines) { ctx.fillText(ln, tx, ty); ty += lh; }
+      ctx.font = fR; ctx.fillStyle = 'rgba(198,205,222,0.85)';
+      ctx.fillText(fit(splitTxt[s].a, room), tx, ty); ctx.fillText(fit(splitTxt[s].b, room), tx, ty + lh);
+    }
+    ctx.globalAlpha = 1; ctx.textBaseline = 'middle';
+  }
   function drawRings(): void {
     const u = U(), cx = w / 2 + panX, cy = hgt / 2 + panY;
+    if (lay === 'split') { drawSplit(); return; }
     ctx.font = `500 11px ${fontSans()}`; ctx.textBaseline = 'middle';
     const rankX = (k: number) => cx + u * (ROWS0 + (ROWS1 - ROWS0) * (Math.log(k) / Math.log(Math.max(2, n))));
     if (lay === 'embedding') return;
@@ -354,7 +416,7 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
       for (let i = 0; i < n; i++) { px[i] = tw1.fx[i] + (tw1.to.x[i] - tw1.fx[i]) * e; py[i] = tw1.fy[i] + (tw1.to.y[i] - tw1.fy[i]) * e; }
       angle = tw1.a0 + (tw1.a1 - tw1.a0) * e;
       bmpDirty = true; frameDirty = true;
-      if (p >= 1) { tween = null; angle = angle % (Math.PI * 2); if (lay !== 'spiral') angle = 0; buildGrid(); overlayT0 = t; }
+      if (p >= 1) { tween = null; angle = angle % (Math.PI * 2); if (lay !== 'spiral') angle = 0; buildGrid(); overlayT0 = t; if (lay === 'split' && store.state.familyIdx !== null) focusCluster(store.state.familyIdx); }
     }
     const animating = (!rm.matches && lay === 'spiral') || introT0 >= 0 || hi_pulse() || !!tween || t - overlayT0 < 300;
     if (!rm.matches && spins()) angle = (angle + (dt / PERIOD_MS) * Math.PI * 2) % (Math.PI * 2);
@@ -384,6 +446,7 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
 
   // ---- zoom / pan
   function setZoom(z: number, ax: number, ay: number): void {
+    viewAnim++;
     const nz = Math.min(ZMAX, Math.max(ZMIN, z));
     const k = nz / zoom;
     panX = ax - w / 2 - (ax - w / 2 - panX) * k; panY = ay - hgt / 2 - (ay - hgt / 2 - panY) * k;
@@ -393,16 +456,30 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
     rerenderAt = performance.now() + 160; frameDirty = true; schedule();
   }
   function clampPan(): void { const lim = R * zoom * 1.05; panX = Math.max(-lim, Math.min(lim, panX)); panY = Math.max(-lim, Math.min(lim, panY)); }
-  function resetView(): void {
-    const z0 = zoom, px0 = panX, py0 = panY, t0 = performance.now(), dur = rm.matches ? 0 : 280;
+  /** Ease the camera to (zoom, pan); jumps when the user prefers reduced motion. A newer call or a user gesture supersedes it. */
+  function animateView(z1: number, px1: number, py1: number): void {
+    const id = ++viewAnim, z0 = zoom, x0 = panX, y0 = panY, t0 = performance.now(), dur = rm.matches ? 0 : 320;
     const step = (t: number) => {
+      if (id !== viewAnim || destroyed) return;
       const p = dur ? Math.min(1, (t - t0) / dur) : 1, e = 1 - Math.pow(1 - p, 3);
-      zoom = z0 + (1 - z0) * e; panX = px0 * (1 - e); panY = py0 * (1 - e);
+      zoom = z0 + (z1 - z0) * e; panX = x0 + (px1 - x0) * e; panY = y0 + (py1 - y0) * e;
       canvas.style.touchAction = zoom > 1.05 ? 'none' : 'pan-y';
       rerenderAt = performance.now() + 160; frameDirty = true; schedule();
       if (p < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
+  }
+  function resetView(): void { animateView(1, 0, 0); }
+  /** In Split, reset also leaves the focused cluster (clearing the family zooms back out). */
+  function resetOrClear(): void { if (lay === 'split' && store.state.familyIdx !== null) store.set({ familyIdx: null }); else resetView(); }
+  function focusCluster(f: number): void {
+    const g = d.split, z = Math.min(ZMAX, 0.92 / g.r);
+    animateView(z, -z * R * g.cx[f], -z * R * g.cy[f]);
+  }
+  function clusterAt(wx: number, wy: number): number | null {
+    const g = d.split;
+    for (let s = 0; s < Math.min(g.slots, d.nFam); s++) if (Math.hypot(wx - g.cx[s], wy - g.cy[s]) < g.r * 1.15) return s;
+    return null;
   }
   function nearestArm(wx: number, wy: number): number | null {
     const r = Math.hypot(wx, wy);
@@ -440,7 +517,7 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
     if (drag) {
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       if (!drag.moved && Math.hypot(dx, dy) > 4) { drag.moved = true; setHover(-1, false); canvas.style.cursor = 'grabbing'; }
-      if (drag.moved) { panX += dx; panY += dy; drag.x = e.clientX; drag.y = e.clientY; clampPan(); frameDirty = true; schedule(); }
+      if (drag.moved) { viewAnim++; panX += dx; panY += dy; drag.x = e.clientX; drag.y = e.clientY; clampPan(); frameDirty = true; schedule(); }
       return;
     }
     if (e.pointerType !== 'touch') { const i = hit(x, y, 8); if (i !== hoverIdx) setHover(i, true); else frameDirty = true; }
@@ -453,16 +530,27 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
     if (e.pointerType !== 'mouse') ptr = null;
     if (!was || was.moved || cancelled) { canvas.style.cursor = hoverIdx >= 0 ? 'pointer' : 'grab'; return; }
     const i = hit(x, y, e.pointerType === 'touch' ? 16 : 8);
-    if (i >= 0) { setHover(i, true); openCve(d.ids[i]); return; }
-    if (zoom <= 1.5) {
-      const [wx, wy] = toWorld(x, y), f = nearestArm(wx, wy);
-      if (f !== null) store.set({ familyIdx: store.state.familyIdx === f ? null : f });
+    if (i >= 0) {
+      const f = d.famA[i];
+      if (f >= 0 && f !== store.state.familyIdx) { // first tap focuses the family; a second tap on it opens the CVE
+        store.set({ familyIdx: f });
+        hintIdx = i; hintTouch = e.pointerType !== 'mouse'; tipIdx = -2; // -2 forces the tooltip to rebuild with the hint
+        setHover(i, true);
+        return;
+      }
+      setHover(i, true); openCve(d.ids[i]); return;
     }
+    if (tween) return;
+    const [wx, wy] = toWorld(x, y);
+    const f = lay === 'split' ? clusterAt(wx, wy) : lay === 'spiral' && zoom <= 1.5 ? nearestArm(wx, wy) : null;
+    if (hoverIdx >= 0) setHover(-1, false);
+    if (f !== null) store.set({ familyIdx: store.state.familyIdx === f ? null : f });
+    else if (store.state.familyIdx !== null) store.set({ familyIdx: null }); // empty space clears the focus
   };
   canvas.addEventListener('pointerup', (e) => endPtr(e, false));
   canvas.addEventListener('pointercancel', (e) => endPtr(e, true));
   canvas.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { ptr = null; if (!drag) setHover(-1, false); } });
-  canvas.addEventListener('dblclick', () => resetView());
+  canvas.addEventListener('dblclick', () => resetOrClear());
 
   // ---- keyboard: arrows cycle the top matching CVEs, Enter opens
   canvas.addEventListener('keydown', (e) => {
@@ -498,17 +586,18 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
   const controls = h('div', { class: 'galaxy-controls' },
     btn('Zoom in', '+', () => setZoom(zoom * 1.4, w / 2, hgt / 2)),
     btn('Zoom out', '−', () => setZoom(zoom / 1.4, w / 2, hgt / 2)),
-    btn('Reset view', '⟲', () => resetView()));
+    btn('Reset view', '⟲', () => resetOrClear()));
   stage.append(controls);
 
   // ---- state subscriptions
   const label = () => {
     const s = summary();
-    canvas.setAttribute('aria-label', `Threat Galaxy: ${fmtInt(n)} CVEs plotted by model rank; ${fmtInt(s.count)} match the current filters, ${fmtInt(s.top500)} of them in the Top 500. Use the arrow keys to step through the highest-ranked matching CVEs and Enter to open one. Escape clears the selection.`);
+    canvas.setAttribute('aria-label', `Threat Galaxy${lay === 'split' ? ', split into one cluster per family' : ''}: ${fmtInt(n)} CVEs plotted by model rank; ${fmtInt(s.count)} match the current filters, ${fmtInt(s.top500)} of them in the Top 500. Use the arrow keys to step through the highest-ranked matching CVEs and Enter to open one. Tap or click a star to focus its family, then again to open its details. Escape clears the selection.`);
   };
   const unsub = store.subscribe((_s, changed) => {
     if (changed.has('view')) switchLayout(_s.view);
-    if (changed.has('filters')) { bmpDirty = true; kbPos = -1; if (hoverIdx >= 0 && !match()[hoverIdx]) setHover(-1, false); label(); }
+    if (changed.has('familyIdx') && lay === 'split' && !tween) { if (_s.familyIdx !== null) focusCluster(_s.familyIdx); else resetView(); }
+    if (changed.has('filters')) { splitDirty = true; bmpDirty = true; kbPos = -1; if (hoverIdx >= 0 && !match()[hoverIdx]) setHover(-1, false); label(); }
     frameDirty = true; schedule();
   });
   // hover coming from elsewhere (list, scatter, chat card): clear a stale local tooltip
@@ -532,6 +621,7 @@ export function createGalaxy(d: GalaxyData, store: Store, colors: string[]): Gal
   requestAnimationFrame(() => {
     if (destroyed) return;
     resize(); label();
+    if (lay === 'split' && store.state.familyIdx !== null) focusCluster(store.state.familyIdx); // deep link into a focused cluster
     canvas.style.touchAction = 'pan-y'; canvas.style.cursor = 'grab';
     let first = false;
     try { first = !sessionStorage.getItem(INTRO_KEY); sessionStorage.setItem(INTRO_KEY, '1'); } catch { /* ignore */ }

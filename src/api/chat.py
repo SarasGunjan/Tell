@@ -252,7 +252,7 @@ def _gemini_chat(store, engine, messages, page, selection) -> Optional[Dict[str,
                  "parts": [{"text": m["content"]}]} for m in messages]
     base = {
         "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT + " " + ctx}]},
-        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1200},
+        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1200, "thinkingConfig": {"thinkingBudget": 0}},
         "tools": [{"functionDeclarations": TOOLS}],
     }
     for round_no in range(MAX_ROUNDS + 1):

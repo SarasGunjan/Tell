@@ -81,6 +81,43 @@ export function filtersRail(d: GalaxyData, store: Store, colors: string[]): HTML
     h('div', { class: 'field' }, h('label', { for: 'd-epss' }, 'Minimum EPSS', epssOut), epss));
 }
 
+// ------------------------------------------------------------------ focused-family card (overlay on the galaxy stage)
+export function familyFocusCard(d: GalaxyData, store: Store, colors: string[], refocus: () => void): HTMLElement {
+  const F = d.nFam, tot = new Int32Array(F), topTot = new Int32Array(F);
+  for (let i = 0; i < d.n; i++) { const f = d.famA[i]; if (f >= 0 && f < F) { tot[f]++; if (d.topA[i]) topTot[f]++; } }
+  const swatch = h('i', { class: 'swatch', 'aria-hidden': 'true' }), name = h('h3', { class: 'ff-name' });
+  const vCves = h('dd', { class: 'num' }), vTop = h('dd', { class: 'num' }), vSig = h('dd', { class: 'num' });
+  const link = h('a', { class: 'btn btn-sm', href: '#/families' }, 'View family →') as HTMLAnchorElement;
+  const clear = h('button', { type: 'button', class: 'btn btn-sm btn-ghost', onClick: () => { store.set({ familyIdx: null }); refocus(); } }, 'Clear');
+  const row = (k: string, v: HTMLElement, tip?: string) => h('div', { class: 'ff-row', title: tip }, h('dt', {}, k), v);
+  const el = h('section', { class: 'ff-card', 'aria-label': 'Focused family', hidden: true },
+    h('div', { class: 'ff-head' }, swatch, name),
+    h('dl', { class: 'ff-facts' },
+      row('CVEs matching', vCves), row('In Top 500', vTop),
+      row('Public exploit code (snapshot)', vSig, 'Any of Exploit-DB, Metasploit, Nuclei or GitHub PoC (observed signals, snapshot)')),
+    h('div', { class: 'ff-prov' }, provenanceTag('granite')),
+    h('div', { class: 'ff-actions' }, link, clear));
+  const of = (a: number, b: number) => (a === b ? fmtInt(b) : `${fmtInt(a)} of ${fmtInt(b)}`);
+  const paint = () => {
+    const f = store.state.familyIdx;
+    if (f === null) { el.hidden = true; return; }
+    const s = store.derived.summary, fam = d.families[f], fresh = el.hidden;
+    swatch.style.background = colors[f % (colors.length - 1)];
+    name.textContent = fam.family_name ?? fam.family_id;
+    vCves.textContent = of(s.count, tot[f]); vTop.textContent = of(s.top500, topTot[f]);
+    vSig.textContent = !d.signals_available.length ? 'not delivered yet' : s.count ? `${fmtPct(s.withSignal / s.count)} · ${fmtInt(s.withSignal)}` : '–';
+    link.href = `#/families?fam=${encodeURIComponent(fam.family_id)}`;
+    if (fresh) {
+      el.hidden = false;
+      if (!reducedMotion()) el.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: 'ease-out' });
+    }
+  };
+  const paintSoon = raf(paint);
+  store.subscribe((_s, c) => { if (c.has('filters')) paintSoon(); });
+  paint();
+  return el;
+}
+
 // ------------------------------------------------------------------ selection panel
 export function selectionPanel(d: GalaxyData, store: Store, colors: string[]): HTMLElement {
   const tile = (label: string, kind: Parameters<typeof provenanceTag>[0]) => {

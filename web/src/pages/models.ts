@@ -62,7 +62,7 @@ function render(ms: Metric[], o: Overview): HTMLElement {
 }
 
 export function mountModels(root: HTMLElement): void {
-  root.appendChild(pageHead('Model Evaluation', 'How the ranking compares with EPSS and two learned models on past KEV outcomes (validation cohort).'));
+  root.appendChild(pageHead('How We Ranked', 'How the ranking compares with EPSS and two learned models on past KEV outcomes (validation cohort).'));
   const host = h('div', { class: 'page-host' });
   root.appendChild(host);
   void loadInto(host, () => Promise.all([api.metrics(), api.overview()]), ([m, o]) => render(m, o), skeleton(6, true));

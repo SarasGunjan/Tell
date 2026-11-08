@@ -333,7 +333,8 @@ def _rephrase(f: Dict[str, Any]) -> Optional[str]:
         "the key takeaway, and the caveat. Copy numbers exactly as written; never invent numbers. Never say "
         "a 2026 CVE is in KEV. No emojis, no headings.\n\nFACTS: " + facts)
     data = gemini_call({"contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {"temperature": 0.5, "maxOutputTokens": 600}})
+                        "generationConfig": {"temperature": 0.5, "maxOutputTokens": 600,
+                                             "thinkingConfig": {"thinkingBudget": 0}}})
     parts = data["candidates"][0]["content"].get("parts", [])
     text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
     if not text or len(text.split()) > 130 or not _numbers_ok(text, facts):

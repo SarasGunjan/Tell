@@ -1,6 +1,7 @@
 /* Dashboard layout + Threat Galaxy. The galaxy stage stays dark in both themes (a viewport into space). */
 .dash { display: grid; gap: var(--sp-4); grid-template-columns: 240px minmax(0, 1fr) 330px; grid-template-areas: "rail galaxy side" "bottom bottom bottom"; align-items: start; }
-.dash-galaxy { grid-area: galaxy; min-width: 0; }
+.dash-galaxy { grid-area: galaxy; min-width: 0; display: grid; gap: var(--sp-4); }
+.dash-galaxy .judge-strip { margin-bottom: 0; }
 .dash-rail-col { grid-area: rail; min-width: 0; }
 .dash-side-col { grid-area: side; min-width: 0; }
 .dash-bottom { grid-area: bottom; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
@@ -60,3 +61,37 @@
 .dash-row:active { transform: scale(0.98); }
 .scatter-key, .budget-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); font-size: var(--fs-xs); }
 @media (prefers-reduced-motion: reduce) { .coach { animation: none; } }
+
+/* Focused-family card: overlay in the stage's top-left corner; docked below the canvas on narrow screens */
+.galaxy-tip .gt-hint { color: #a6c8ff; font-weight: 600; margin-top: 2px; }
+.ff-card { position: absolute; top: 8px; left: 8px; z-index: 4; width: min(236px, calc(100% - 60px)); background: var(--surface-1); color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--r-md); padding: var(--sp-3); display: grid; gap: var(--sp-2); box-shadow: var(--shadow-2); font-size: var(--fs-xs); }
+.ff-card[hidden] { display: none; }
+.ff-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ff-name { font-size: var(--fs-sm); font-weight: 600; line-height: var(--lh-snug); min-width: 0; overflow-wrap: anywhere; }
+.ff-facts { display: grid; gap: 4px; margin: 0; }
+.ff-row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.ff-row dt { color: var(--text-2); }
+.ff-row dd { margin: 0; font-weight: 600; text-align: right; }
+.ff-prov { display: flex; flex-wrap: wrap; gap: 4px; }
+.ff-prov .prov { font-size: 11px; }
+.ff-actions { display: flex; gap: var(--sp-2); align-items: center; }
+.ff-actions .btn { text-decoration: none; }
+@media (max-width: 700px) {
+  .ff-card { position: static; width: auto; margin-top: var(--sp-3); }
+}
+
+/* ---------- judge strip: three short answers above the galaxy ---------- */
+.judge-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.judge-strip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.judge-card { display: grid; gap: var(--sp-2); align-content: start; padding: var(--sp-3) var(--sp-4); background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg); animation: judge-in 160ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 40ms); }
+.judge-q { font-size: var(--fs-base); font-weight: 600; letter-spacing: var(--tracking-title); color: var(--text); }
+.judge-a { color: var(--text-2); font-size: var(--fs-sm); }
+.judge-num { color: var(--text); font-size: var(--fs-sm); font-weight: 600; }
+.judge-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); font-size: var(--fs-sm); margin-top: auto; }
+.judge-foot a { color: var(--accent); text-underline-offset: 3px; }
+@keyframes judge-in { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .judge-card { animation: none; } }
+@media (max-width: 899px) {
+  .judge-strip { display: flex; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: var(--sp-2); }
+  .judge-card { flex: 0 0 min(82%, 320px); scroll-snap-align: start; }
+}

@@ -85,13 +85,13 @@ export type SignalKey = (typeof SIGNALS)[number]['key'];
 
 /** Chart/table target ids that live on each page; used to route highlight actions. */
 export const TARGET_PAGE: Record<string, import('./api').PageId> = {
-  'chart-galaxy': 'dashboard', 'dash-kpis': 'dashboard', 'chart-scatter': 'dashboard', 'chart-budget': 'dashboard',
-  'kpi-candidates': 'overview', 'kpi-hits500': 'overview', 'kpi-lift': 'overview',
-  'chart-rank-epss': 'overview', 'chart-epss-dist': 'overview', 'chart-signals': 'overview', 'chart-published': 'overview',
+  'chart-galaxy': 'galaxy', 'dash-kpis': 'galaxy', 'chart-scatter': 'galaxy', 'chart-budget': 'galaxy',
+  'kpi-candidates': 'signals', 'kpi-hits500': 'signals', 'kpi-lift': 'signals',
+  'chart-rank-epss': 'signals', 'chart-epss-dist': 'signals', 'chart-signals': 'signals', 'chart-published': 'signals',
   'chart-family-size': 'families', 'chart-family-kev': 'families', 'chart-family-bubble': 'families',
-  'chart-hits': 'models', 'table-ap': 'models',
-  'research-concentration': 'research', 'research-temporal': 'research', 'research-baselines': 'research', 'research-cwe': 'research',
+  'chart-hits': 'how-we-ranked', 'table-ap': 'how-we-ranked',
+  'research-concentration': 'discoveries', 'research-temporal': 'discoveries', 'research-baselines': 'discoveries', 'research-cwe': 'discoveries',
   'table-top500': 'top500',
-  'panel-cve': 'analyst', 'panel-brief': 'analyst', 'panel-grounding': 'analyst',
+  'panel-cve': 'ask', 'panel-brief': 'ask', 'panel-grounding': 'ask',
 };
 

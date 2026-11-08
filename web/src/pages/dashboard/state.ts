@@ -1,4 +1,4 @@
-// One small store for the Dashboard. Every panel renders from it; filters persist in the URL hash query.
+// One small store for the Galaxy page. Every panel renders from it; filters persist in the URL hash query.
 import { SIGNALS, type SignalKey } from '../../util';
 import type { Layout } from './encodings';
 import { computeMatch, summarize, type Filters, type GalaxyData, type Scope, type Summary } from './data';
@@ -18,7 +18,7 @@ export function readHash(d: GalaxyData): Filters & { view: Layout } {
     scope: q.get('scope') === 'top500' ? 'top500' : 'all',
     familyIdx: fi >= 0 ? fi : null,
     signals: new Set((q.get('sig') ?? '').split(',').filter((x): x is SignalKey => valid.has(x))),
-    view: q.get('view') === 'rows' ? 'rows' : q.get('view') === 'map' && d.pos.embedding ? 'embedding' : 'spiral',
+    view: q.get('view') === 'rows' ? 'rows' : q.get('view') === 'split' && d.hasFamilies ? 'split' : q.get('view') === 'map' && d.pos.embedding ? 'embedding' : 'spiral',
     minEpss: Number.isFinite(e) && e > 0 && e <= 1 ? e : 0,
   };
 }
@@ -29,10 +29,10 @@ function writeHash(d: GalaxyData, f: Filters & { view: Layout }): void {
   if (f.familyIdx !== null) q.set('fam', d.families[f.familyIdx].family_id);
   if (f.signals.size) q.set('sig', [...f.signals].join(','));
   if (f.minEpss > 0) q.set('epss', String(Number(f.minEpss.toPrecision(3))));
-  if (f.view !== 'spiral') q.set('view', f.view === 'rows' ? 'rows' : 'map');
+  if (f.view !== 'spiral') q.set('view', f.view === 'rows' ? 'rows' : f.view === 'split' ? 'split' : 'map');
   const qs = q.toString();
-  const next = `#/dashboard${qs ? `?${qs}` : ''}`;
-  if (location.hash !== next && /^#\/dashboard/.test(location.hash || '#/dashboard')) history.replaceState(null, '', next); // replaceState: no hashchange, no remount
+  const next = `#/galaxy${qs ? `?${qs}` : ''}`;
+  if (location.hash !== next && /^#\/galaxy/.test(location.hash || '#/galaxy')) history.replaceState(null, '', next); // replaceState: no hashchange, no remount
 }
 
 export function createStore(d: GalaxyData) {

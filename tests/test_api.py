@@ -24,7 +24,7 @@ def client():
 
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
-    for k in ("GEMINI_API_KEY", "SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER", "SNOWFLAKE_PASSWORD"):
+    for k in ("GEMINI_API_KEY", "SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER", "SNOWFLAKE_PAT"):
         monkeypatch.delenv(k, raising=False)
     server._buckets.clear()
     monkeypatch.setattr(server, "AI_BURST", 1e9)  # rate limit off except in its own test
@@ -574,3 +574,15 @@ def test_validate_exit_codes(tell_dir, capsys):
     _bench(tell_dir, granite_features__csv=gf.replace("CVE-2026-0499,0", "CVE-2026-0499,5"))  # id 5 has no summary
     assert validate_mod.main(["--dir", str(tell_dir), "--granite-dir", gran]) == 1
     assert "without summary" in capsys.readouterr().out
+
+
+def test_cortex_reply_parsing():
+    from src.ai.snowflake_cortex import _cortex_text
+
+    class R:
+        def __init__(self, ctype, text): self.headers, self.text = {"Content-Type": ctype}, text
+        def json(self): import json; return json.loads(self.text)
+
+    sse = 'data: {"choices":[{"delta":{"content":"Hel"}}]}\n\ndata: {"choices":[{"delta":{"content":"lo"}}]}\n\ndata: [DONE]\n'
+    assert _cortex_text(R("text/event-stream", sse)) == "Hello"
+    assert _cortex_text(R("application/json", '{"choices":[{"message":{"content":"Hi"}}]}')) == "Hi"

@@ -3,7 +3,7 @@
 // and the legend, tooltips and coach marks are generated from it.
 import type { GalaxyData } from './data';
 
-export type Layout = 'spiral' | 'rows' | 'embedding';
+export type Layout = 'spiral' | 'split' | 'rows' | 'embedding';
 export type Provenance = 'model' | 'snapshot' | 'observed' | 'embedding';
 export type Channel = { field: string; source: string; provenance: Provenance; meaning: string };
 
@@ -14,6 +14,11 @@ export const ENCODINGS = {
       label: 'Galaxy',
       provenanceLabel: undefined as string | undefined,
       legend: ['Distance from the core = rank ({method})', 'Arm = family', 'Rotation and spread within an arm carry no meaning'],
+    },
+    split: {
+      label: 'Split',
+      provenanceLabel: undefined as string | undefined,
+      legend: ['One cluster = one family', 'Distance from the cluster centre = rank within the family ({method})', 'Rotation and spread within a cluster carry no meaning'],
     },
     rows: {
       label: 'Chart',

@@ -157,7 +157,7 @@ def status():
     s = get_store()
     return {
         "gemini": bool(os.environ.get("GEMINI_API_KEY")),
-        "snowflake": all(os.environ.get(k) for k in ("SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER", "SNOWFLAKE_PASSWORD")),
+        "snowflake": SnowflakeCortexAssistant().is_configured,
         "descriptions": s.has_descriptions,
         "model": os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
         "counts": {"cves": int(len(s.df)) if s.has_predictions else None,

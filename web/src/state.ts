@@ -6,7 +6,7 @@ export type Top500Filters = {
   sort: 'rank' | 'epss'; offset: number;
 };
 export const state = {
-  page: 'overview' as PageId,
+  page: 'galaxy' as PageId,
   selection: null as string | null, // CVE currently open in the drawer / analyst picker
   chatContext: null as string | null, // e.g. a family the user asked about; sent as chat selection
   top500: { q: '', family_id: '', min_epss: 0, signals: [], sort: 'rank', offset: 0 } as Top500Filters,

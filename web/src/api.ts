@@ -32,9 +32,14 @@ export type Grounding = {
   target_cve: string; grounding_score: number; status_label: string;
   checks: GroundingCheck[]; hallucinations: string[]; is_grounded: boolean;
 };
-export type PageId = 'dashboard' | 'overview' | 'top500' | 'families' | 'research' | 'models' | 'analyst';
+export type PageId = 'galaxy' | 'signals' | 'top500' | 'families' | 'discoveries' | 'how-we-ranked' | 'ask' | 'story';
+/** Old page ids (backend chat actions, old bookmarks) to the current ones. */
+export const LEGACY_PAGE: Record<string, PageId> = { dashboard: 'galaxy', overview: 'signals', research: 'discoveries', models: 'how-we-ranked', analyst: 'ask' };
+const BACKEND_PAGE: Partial<Record<PageId, string>> = { galaxy: 'dashboard', signals: 'overview', discoveries: 'research', 'how-we-ranked': 'models', ask: 'analyst', story: 'overview' };
+/** The backend only knows the old ids; send those. */
+const toBackend = (p: PageId): string => BACKEND_PAGE[p] ?? p;
 export type Action =
-  | { type: 'navigate'; page: PageId }
+  | { type: 'navigate'; page: string }
   | { type: 'open_cve'; cve_id: string }
   | { type: 'filter_top500'; q?: string; family_id?: string; min_epss?: number; signals?: string[] }
   | { type: 'highlight'; target: string }
@@ -169,6 +174,6 @@ export const api = {
   brief: (cve_id: string) => post<BriefResult>('/api/brief', { cve_id }),
   ask: (cve_id: string, question: string) => post<AskResult>('/api/ask', { cve_id, question }),
   chat: (messages: ChatMessage[], page: PageId, selection?: string | null) =>
-    post<ChatResult>('/api/chat', { messages, page, ...(selection ? { selection } : {}) }),
-  explain: (target: string, page: PageId) => post<ExplainResult>('/api/explain', { target, page }),
+    post<ChatResult>('/api/chat', { messages, page: toBackend(page), ...(selection ? { selection } : {}) }),
+  explain: (target: string, page: PageId) => post<ExplainResult>('/api/explain', { target, page: toBackend(page) }),
 };

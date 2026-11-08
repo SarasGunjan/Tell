@@ -1,4 +1,4 @@
-import type { Action } from './api';
+import { LEGACY_PAGE, type Action, type PageId } from './api';
 import { navigate } from './router';
 import { openCve } from './components/drawer';
 import { applyFilter, emit } from './state';
@@ -7,7 +7,7 @@ import { applyFilter, emit } from './state';
 export function runActions(actions: Action[]): void {
   for (const a of actions) {
     switch (a.type) {
-      case 'navigate': navigate(a.page); break;
+      case 'navigate': navigate(LEGACY_PAGE[a.page] ?? (a.page as PageId)); break;
       case 'open_cve': openCve(a.cve_id); break;
       case 'filter_top500': applyFilter(a); navigate('top500'); break;
       case 'highlight': emit('pet:explain', { target: a.target, source: 'chat' }); break;
@@ -16,11 +16,11 @@ export function runActions(actions: Action[]): void {
   }
 }
 
-const PAGE_LABEL: Record<string, string> = { dashboard: 'Dashboard', overview: 'Overview', top500: 'Top 500', families: 'Families', research: 'Research', models: 'Model Evaluation', analyst: 'AI Analyst' };
+const PAGE_LABEL: Record<string, string> = { galaxy: 'Galaxy', signals: 'Signals', top500: 'Top 500', families: 'Families', discoveries: 'Discoveries', 'how-we-ranked': 'How We Ranked', ask: 'Ask Tell', story: 'Our Story' };
 
 export function describeAction(a: Action): string | null {
   switch (a.type) {
-    case 'navigate': return `Go to ${PAGE_LABEL[a.page] ?? a.page}`;
+    case 'navigate': return `Go to ${PAGE_LABEL[LEGACY_PAGE[a.page] ?? a.page] ?? a.page}`;
     case 'open_cve': return `Open ${a.cve_id}`;
     case 'highlight': return 'Show me';
     case 'filter_top500': return 'Apply filter';

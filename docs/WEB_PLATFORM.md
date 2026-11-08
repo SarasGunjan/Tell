@@ -3,6 +3,14 @@
 **Tell** — *Every attack has a tell.* Member 3 deliverable (full-stack, APIs, deployment).
 Chart.js web frontend + thin read-only FastAPI layer. Replaces nothing: the Streamlit app keeps working.
 
+## Web routes and pages (renamed)
+
+Nav order: `#/galaxy` (was Dashboard), `#/signals` (Overview), `#/top500`, `#/families`, `#/discoveries` (Research), `#/how-we-ranked` (Models), `#/ask` (Analyst), `#/story` (new).
+
+- Old hashes (`#/dashboard`, `#/overview`, `#/research`, `#/models`, `#/analyst`, empty `#/`) redirect to the new route via `history.replaceState`, keeping `?query`. Backend chat `navigate` actions still send old page ids; `LEGACY_PAGE` in `web/src/api.ts` maps them, and the frontend sends old ids back to `/api/chat` and `/api/explain` (no backend change needed).
+- Galaxy page: a strip of three short answers (why it matters, what we discovered, how it could help) sits above the galaxy (`pages/dashboard/judge.ts`). Legend auto-collapses when switching to Split; Split labels are ellipsized to fit narrow stages.
+- Our Story (`pages/story.ts`, `styles/story.css`): static long-form write-up of the analysis with an "On this page" list on wide screens. The "Continue the story" footer follows nav order and wraps from Our Story back to Galaxy.
+
 ## Final data contract (supersedes the older integration table below where they differ)
 
 Config: `TELL_RESULTS_DIR` (Member 1, default `results/`), `TELL_GRANITE_DIR` (Member 2, default `outputs/granite`). Hot reload covers both.
@@ -127,7 +135,7 @@ Send the Gemini key as header `x-goog-api-key`, not in the URL.
 
 | Page | Contents (Chart.js) |
 |---|---|
-| Dashboard (default) | Threat Galaxy (canvas; one star per CVE; layouts Galaxy / Chart / Semantic map driven by `web/src/pages/dashboard/encodings.ts`), filters rail, live selection panel, EPSS-vs-score scatter, patch-budget lines; filters live in the URL hash (`#/dashboard?fam=FAM-02&sig=metasploit&view=rows`) |
+| Dashboard (default) | Threat Galaxy (canvas; one star per CVE; layouts Galaxy / Split / Chart / Semantic map driven by `web/src/pages/dashboard/encodings.ts`), filters rail, live selection panel, EPSS-vs-score scatter, patch-budget lines; filters live in the URL hash (`#/dashboard?fam=FAM-02&sig=metasploit&view=rows`; `view=split` = one cluster per family, labelled with CVE and Top 500 counts, tap a cluster to zoom to it) |
 | Overview | KPI tiles; score distribution (top500 vs all, log y); EPSS distribution; exploit-signal prevalence top500 vs all; published-by-month |
 | Top 500 | filter bar (search, family, min EPSS, signal chips); virtual/paged table; CVE drawer (fields, signals, family, description, provenance labels, "Brief" + "Ask" buttons) |
 | Families | family size bar; historical KEV rate bar; bubble (size × KEV rate × avg EPSS); family detail panel w/ top CVEs |
@@ -147,6 +155,12 @@ Global: **Chat dock** (bottom-right, persists across pages, executes `actions`),
 - **Light theme:** Carbon White/Gray 10 equivalents with Blue 60 accent and the light categorical palette (`#6929c4, #1192e8, #005d5d, #9f1853, #fa4d56, #198038, #002d9c, #b28600`).
 - **Space layer:** fixed `<canvas>` starfield behind content, ~120 stars, 2 depth layers, opacity ≤ .35, slow drift + scroll parallax (≤ 0.15), twinkle on a few; paused when hidden; static under reduced motion; hidden in light theme. Optional faint nebula radial wash in hero only (≤ 6% opacity). No glows on UI chrome, no gradients on cards.
 - **No IBM logo/wordmark** and nothing implying IBM endorsement; "Built for the IBM *Before the Breach* track" as plain text is fine.
+
+### Galaxy tap rules, focus card, story footer
+- Tap/click a star: if its family is not the focused family it focuses that family and keeps the tooltip with a "Tap again / Click again to open details" hint; a star in the focused family opens the CVE drawer. Enter on the canvas opens directly; Escape clears focus.
+- Tap empty space: Galaxy layout at low zoom toggles the nearest arm; Split toggles the cluster under the finger (and zooms to / away from it); anywhere else clears the focus. Split counts show "x of y" when filters narrow a family, else the plain total. The reset button in Split also clears the focus.
+- Focused-family card (`familyFocusCard` in `dashboard/panels.ts`): overlay top-left of the stage (docked below the canvas at <= 700px). Counts follow the filters; "public exploit code" = any of the four signal bits (Exploit-DB, Metasploit, Nuclei, GitHub PoC). Links to `#/families?fam=<family_id>`, which the Families page reads to preselect that family.
+- `components/nextstep.ts`: the router appends one "Continue the story" card after every page (next page in `PAGES` order; the last links back to Dashboard). Edit its `BLURB` table when a page's content changes.
 
 ## Interactivity (all backed by existing endpoints)
 

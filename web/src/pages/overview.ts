@@ -164,7 +164,7 @@ function render(o: Overview, d: Distributions): HTMLElement {
 
 export function mountOverview(root: HTMLElement): void {
   root.appendChild(h('div', { class: 'hero-wash', 'aria-hidden': 'true' }));
-  root.appendChild(pageHead('Overview', 'Every attack has a tell. Which CVEs on the 2026 scoreboard are most likely to enter CISA KEV, ranked by public exploit code then EPSS.'));
+  root.appendChild(pageHead('Signals', 'Every attack has a tell. Which CVEs on the 2026 scoreboard are most likely to enter CISA KEV, ranked by public exploit code then EPSS.'));
   const host = h('div', { class: 'page-host' });
   root.appendChild(host);
   void loadInto(host, () => Promise.all([api.overview(), api.distributions()]), ([o, d]) => render(o, d), skeleton(6, true));
