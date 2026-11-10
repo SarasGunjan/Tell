@@ -2,7 +2,7 @@
 
 **Sheridan Datathon 2026 · IBM "Before the Breach" track**
 
-**Live site: https://149-28-52-109.sslip.io** (any laptop or phone, no login)
+**Live site: https://tell-datathon.duckdns.org** (any laptop or phone, no login)
 
 Over 92,000 vulnerabilities (CVEs) have been published in 2026, and fewer than 1 in 250 is ever confirmed exploited.
 IBM asked: predict which ones attackers will exploit, and show engineers **what to fix first and why**.
